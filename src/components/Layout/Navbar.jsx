@@ -13,7 +13,7 @@ export const Navbar = ({ onContactClick }) => {
 
     return (
 
-        <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled ? 'py-4 bg-gray-950/80 backdrop-blur-md border-b border-white/5 shadow-lg' : 'py-6 bg-transparent'}`}>
+        <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled ? 'py-4 bg-gray-950/80 backdrop-blur-md shadow-lg' : 'py-6 bg-transparent'}`}>
             <div className="container mx-auto px-4 relative flex justify-between items-center">
                 {/* Logo (Left) */}
                 <div className="flex items-center gap-4 z-10">

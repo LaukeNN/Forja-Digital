@@ -97,3 +97,13 @@ export const CONFIG = {
     rentSetupFeePercent: 0.20, // 20%
     rentMonthlyPercent: 0.05,  // 5%
 };
+
+// ==========================================
+// CONFIGURACIÓN DEL DESCUENTO
+// ==========================================
+export const DISCOUNT = {
+    enabled: true,              // true = mostrar descuento, false = ocultar
+    percent: 35,                // Porcentaje de descuento (ej: 35 = 35%)
+    label: '¡OFERTA DE LANZAMIENTO!',  // Texto del badge
+    subLabel: 'Por tiempo limitado',    // Subtexto opcional
+};

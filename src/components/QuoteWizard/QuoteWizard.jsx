@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronRight, ChevronLeft, Send, CheckCircle2, RotateCcw, HelpCircle, ArrowRight } from 'lucide-react';
-import { BUSINESS_TIERS, PROJECT_TYPES, SERVICES, INFRASTRUCTURE, CONFIG, INDUSTRIES } from '../../data/pricing';
+import { BUSINESS_TIERS, PROJECT_TYPES, SERVICES, INFRASTRUCTURE, CONFIG, INDUSTRIES, DISCOUNT } from '../../data/pricing';
 import { SelectCard } from '../UI/SelectCard';
 import { CheckboxCard } from '../UI/CheckboxCard';
 
@@ -45,11 +45,25 @@ export const QuoteWizard = () => {
         // Monthly Rent = (5% of Dev) + (Annual Infra / 12)
         const monthlyRent = (devTotal * CONFIG.rentMonthlyPercent) + (annualTotal / 12);
 
+        // Discount calculations
+        const discountMultiplier = DISCOUNT.enabled ? (1 - DISCOUNT.percent / 100) : 1;
+        const devTotalDiscounted = Math.ceil(devTotal * discountMultiplier);
+        const setupFeeDiscounted = Math.ceil(setupFee * discountMultiplier);
+        const monthlyRentDiscounted = Math.ceil(monthlyRent * discountMultiplier);
+
         return {
             devTotal,
             annualTotal,
             setupFee,
-            monthlyRent
+            monthlyRent,
+            // Discounted values
+            devTotalDiscounted,
+            setupFeeDiscounted,
+            monthlyRentDiscounted,
+            discountPercent: DISCOUNT.percent,
+            discountEnabled: DISCOUNT.enabled,
+            discountLabel: DISCOUNT.label,
+            discountSubLabel: DISCOUNT.subLabel,
         };
     }, [selections]);
 
@@ -234,7 +248,25 @@ export const QuoteWizard = () => {
                     {/* STEP 6: BUSINESS MODEL */}
                     {step === 6 && (
                         <motion.div key="step6" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
-                            <h2 className="text-3xl font-bold mb-8 text-center">Modelo de Inversión</h2>
+                            <h2 className="text-3xl font-bold mb-4 text-center">Modelo de Inversión</h2>
+
+                            {/* Discount Banner */}
+                            {totalCost.discountEnabled && (
+                                <motion.div
+                                    initial={{ scale: 0.8, opacity: 0 }}
+                                    animate={{ scale: 1, opacity: 1 }}
+                                    transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
+                                    className="mb-8 text-center"
+                                >
+                                    <div className="inline-flex items-center gap-3 px-6 py-3 bg-gradient-to-r from-green-500 to-emerald-600 rounded-full shadow-lg shadow-green-500/30 animate-pulse">
+                                        <span className="text-white font-black text-xl">{totalCost.discountPercent}% OFF</span>
+                                        <span className="text-white/90 font-medium">{totalCost.discountLabel}</span>
+                                    </div>
+                                    {totalCost.discountSubLabel && (
+                                        <p className="text-emerald-400 text-sm mt-2">{totalCost.discountSubLabel}</p>
+                                    )}
+                                </motion.div>
+                            )}
 
                             <div className="grid md:grid-cols-2 gap-8 max-w-3xl mx-auto">
                                 {/* One Time Payment Card */}
@@ -245,9 +277,22 @@ export const QuoteWizard = () => {
                                     <div className="text-center">
                                         <h3 className="text-2xl font-bold text-white mb-2">Pago Único</h3>
                                         <p className="text-slate-400 mb-6">Desarrollo completo de tu propiedad.</p>
-                                        <div className="text-4xl font-bold text-white mb-2">
-                                            ${totalCost.devTotal.toLocaleString()}
-                                        </div>
+
+                                        {totalCost.discountEnabled ? (
+                                            <>
+                                                <div className="text-xl text-slate-500 line-through mb-1">
+                                                    ${totalCost.devTotal.toLocaleString()}
+                                                </div>
+                                                <div className="text-4xl font-bold text-emerald-400 mb-2">
+                                                    ${totalCost.devTotalDiscounted.toLocaleString()}
+                                                </div>
+                                            </>
+                                        ) : (
+                                            <div className="text-4xl font-bold text-white mb-2">
+                                                ${totalCost.devTotal.toLocaleString()}
+                                            </div>
+                                        )}
+
                                         <div className="text-sm text-slate-400">
                                             + ${totalCost.annualTotal.toLocaleString()}/año de servidor
                                         </div>
@@ -263,13 +308,31 @@ export const QuoteWizard = () => {
                                         <div className="inline-block px-3 py-1 rounded-full bg-brand-500 text-white text-xs font-bold mb-4">RECOMENDADO</div>
                                         <h3 className="text-2xl font-bold text-white mb-2">Renta Mensual</h3>
                                         <p className="text-slate-400 mb-6">Tu sitio como servicio. Todo incluido.</p>
-                                        <div className="text-4xl font-bold text-white mb-2">
-                                            ${Math.ceil(totalCost.monthlyRent).toLocaleString()}
-                                            <span className="text-lg font-normal text-slate-500">/mes</span>
-                                        </div>
-                                        <div className="text-sm text-slate-400">
-                                            Pago inicial: ${Math.ceil(totalCost.setupFee).toLocaleString()}
-                                        </div>
+
+                                        {totalCost.discountEnabled ? (
+                                            <>
+                                                <div className="text-xl text-slate-500 line-through mb-1">
+                                                    ${Math.ceil(totalCost.monthlyRent).toLocaleString()}/mes
+                                                </div>
+                                                <div className="text-4xl font-bold text-emerald-400 mb-2">
+                                                    ${totalCost.monthlyRentDiscounted.toLocaleString()}
+                                                    <span className="text-lg font-normal text-emerald-300">/mes</span>
+                                                </div>
+                                                <div className="text-sm text-slate-400">
+                                                    Pago inicial: <span className="line-through">${Math.ceil(totalCost.setupFee).toLocaleString()}</span> <span className="text-emerald-400 font-medium">${totalCost.setupFeeDiscounted.toLocaleString()}</span>
+                                                </div>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <div className="text-4xl font-bold text-white mb-2">
+                                                    ${Math.ceil(totalCost.monthlyRent).toLocaleString()}
+                                                    <span className="text-lg font-normal text-slate-500">/mes</span>
+                                                </div>
+                                                <div className="text-sm text-slate-400">
+                                                    Pago inicial: ${Math.ceil(totalCost.setupFee).toLocaleString()}
+                                                </div>
+                                            </>
+                                        )}
                                     </div>
                                 </div>
                             </div>
@@ -318,17 +381,46 @@ export const QuoteWizard = () => {
                                                 </div>
                                             </div>
 
-                                            <div className="bg-brand-600 p-6 rounded-xl text-white text-center">
+                                            <div className="bg-gradient-to-br from-emerald-600 to-green-700 p-6 rounded-xl text-white text-center relative overflow-hidden">
+                                                {/* Discount Badge */}
+                                                {totalCost.discountEnabled && (
+                                                    <div className="absolute top-0 right-0 bg-yellow-400 text-black font-black px-4 py-1 text-sm transform rotate-0 rounded-bl-lg">
+                                                        -{totalCost.discountPercent}%
+                                                    </div>
+                                                )}
+
                                                 <p className="opacity-80 mb-2">Tu inversión seleccionada:</p>
                                                 {selections.model === 'one-time' ? (
                                                     <>
-                                                        <div className="text-4xl font-bold mb-1">${totalCost.devTotal.toLocaleString()}</div>
+                                                        {totalCost.discountEnabled && (
+                                                            <div className="text-xl opacity-60 line-through mb-1">${totalCost.devTotal.toLocaleString()}</div>
+                                                        )}
+                                                        <div className="text-4xl font-bold mb-1">
+                                                            ${totalCost.discountEnabled ? totalCost.devTotalDiscounted.toLocaleString() : totalCost.devTotal.toLocaleString()}
+                                                        </div>
                                                         <div className="text-sm opacity-75">+ ${totalCost.annualTotal.toLocaleString()}/año (Hosting)</div>
+                                                        {totalCost.discountEnabled && (
+                                                            <div className="mt-3 text-yellow-300 text-sm font-medium">
+                                                                ¡Ahorras ${(totalCost.devTotal - totalCost.devTotalDiscounted).toLocaleString()}!
+                                                            </div>
+                                                        )}
                                                     </>
                                                 ) : (
                                                     <>
-                                                        <div className="text-4xl font-bold mb-1">${Math.ceil(totalCost.monthlyRent).toLocaleString()}/mes</div>
-                                                        <div className="text-sm opacity-75">Setup: ${Math.ceil(totalCost.setupFee).toLocaleString()}</div>
+                                                        {totalCost.discountEnabled && (
+                                                            <div className="text-xl opacity-60 line-through mb-1">${Math.ceil(totalCost.monthlyRent).toLocaleString()}/mes</div>
+                                                        )}
+                                                        <div className="text-4xl font-bold mb-1">
+                                                            ${totalCost.discountEnabled ? totalCost.monthlyRentDiscounted.toLocaleString() : Math.ceil(totalCost.monthlyRent).toLocaleString()}/mes
+                                                        </div>
+                                                        <div className="text-sm opacity-75">
+                                                            Setup: ${totalCost.discountEnabled ? totalCost.setupFeeDiscounted.toLocaleString() : Math.ceil(totalCost.setupFee).toLocaleString()}
+                                                        </div>
+                                                        {totalCost.discountEnabled && (
+                                                            <div className="mt-3 text-yellow-300 text-sm font-medium">
+                                                                ¡Ahorras ${(Math.ceil(totalCost.monthlyRent) - totalCost.monthlyRentDiscounted).toLocaleString()}/mes!
+                                                            </div>
+                                                        )}
                                                     </>
                                                 )}
                                             </div>
