@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Facebook, Instagram, Mail, Phone } from 'lucide-react';
+import { Mail, Phone, ChevronDown } from 'lucide-react';
 
 
 export const Navbar = ({ onContactClick }) => {
@@ -25,21 +25,35 @@ export const Navbar = ({ onContactClick }) => {
                 </div>
 
                 {/* Social Icons (Absolutely Centered) */}
+                {/* Social Icons (Absolutely Centered) */}
                 <div className="hidden md:flex absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 items-center gap-6 bg-dark-card/50 px-6 py-2 rounded-full border border-white/5 backdrop-blur-sm z-10">
-                    <a href="#" className="text-slate-400 hover:text-brand-500 transition-colors"><Facebook size={20} /></a>
-                    <a href="#" className="text-slate-400 hover:text-brand-500 transition-colors"><Instagram size={20} /></a>
                     <a href="#" className="text-slate-400 hover:text-brand-500 transition-colors"><Mail size={20} /></a>
                     <a href="#" className="text-slate-400 hover:text-brand-500 transition-colors"><Phone size={20} /></a>
                 </div>
 
                 {/* CTA Button (Right) */}
-                <div className="z-10">
+                {/* Services Dropdown (Right) */}
+                <div className="z-10 relative group">
                     <button
-                        onClick={onContactClick}
-                        className="px-6 py-2.5 bg-brand-600 hover:bg-brand-500 text-white rounded-lg font-medium transition-all shadow-lg shadow-brand-600/20 hover:shadow-brand-600/30 text-sm"
+                        className="px-6 py-2.5 bg-brand-600 hover:bg-brand-500 text-white rounded-lg font-medium transition-all shadow-lg shadow-brand-600/20 hover:shadow-brand-600/30 text-sm flex items-center gap-2"
                     >
-                        Contáctanos
+                        Servicios
+                        <ChevronDown size={16} />
                     </button>
+                    {/* Dropdown Menu */}
+                    <div className="absolute right-0 top-full mt-2 w-48 bg-gray-900 border border-white/10 rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 transform origin-top-right">
+                        <div className="py-1">
+                            {['Diseño Web', 'App Web', 'E-commerce'].map((item) => (
+                                <a
+                                    key={item}
+                                    href="#"
+                                    className="block px-4 py-2 text-sm text-slate-300 hover:bg-white/5 hover:text-white transition-colors"
+                                >
+                                    {item}
+                                </a>
+                            ))}
+                        </div>
+                    </div>
                 </div>
             </div>
         </nav>

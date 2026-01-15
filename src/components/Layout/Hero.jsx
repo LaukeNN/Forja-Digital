@@ -29,7 +29,7 @@ export const Hero = ({ onCtaClick }) => {
                 </h1>
 
                 <p className="text-lg md:text-xl text-slate-300 mb-12 max-w-3xl mx-auto leading-relaxed font-light">
-                    Diseño minimalista, tecnología de punta y estrategias escalables.
+                    Tecnología de punta y estrategias escalables.
                     <span className="block mt-2">Transformamos ideas en experiencias digitales inolvidables.</span>
                 </p>
 
@@ -40,9 +40,6 @@ export const Hero = ({ onCtaClick }) => {
                     >
                         Cotizar mi Proyecto
                         <ArrowRight size={20} />
-                    </button>
-                    <button className="px-8 py-3.5 bg-transparent border border-slate-600 hover:border-white text-slate-300 hover:text-white rounded-full font-semibold text-lg transition-all backdrop-blur-sm">
-                        Ver Portafolio
                     </button>
                 </div>
             </div>
