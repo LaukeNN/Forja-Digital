@@ -1,37 +1,42 @@
 import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronRight, ChevronLeft, Send, CheckCircle2, RotateCcw, HelpCircle, ArrowRight } from 'lucide-react';
-import { BUSINESS_TIERS, PROJECT_TYPES, SERVICES, INFRASTRUCTURE, CONFIG, INDUSTRIES, DISCOUNT } from '../../data/pricing';
+import { ChevronRight, ChevronLeft, CheckCircle2, RotateCcw, HelpCircle, MessageCircle } from 'lucide-react';
+import { BASE_PRICE, PROJECT_TYPES, SERVICES, INFRASTRUCTURE, CONFIG, INDUSTRIES, DISCOUNT } from '../../data/pricing';
 import { SelectCard } from '../UI/SelectCard';
 import { CheckboxCard } from '../UI/CheckboxCard';
+
+// Número de WhatsApp para contacto
+const WHATSAPP_NUMBER = '526531463159';
 
 export const QuoteWizard = () => {
     const [step, setStep] = useState(1);
     const [selections, setSelections] = useState({
-        industry: null,   // Step 1 (New)
-        tier: null,       // Step 2 (Old 1)
-        projectType: null,// Step 3 (Old 2)
-        services: [],     // Step 4 (Old 3)
-        infra: null,      // Step 5 (Old 4)
-        model: 'one-time' // Step 6 (Old 5)
+        industry: null,   // Step 1
+        projectType: null,// Step 2
+        services: [],     // Step 3
+        infra: null,      // Step 4
+        model: 'one-time' // Step 5
     });
     const [isSubmitted, setIsSubmitted] = useState(false);
     const [showConsultation, setShowConsultation] = useState(false);
 
-    const totalSteps = 7; // Increased by 1
+    const totalSteps = 6;
 
     const totalCost = useMemo(() => {
         let devTotal = 0;
         let annualTotal = 0;
 
-        // Step 2: Base
-        if (selections.tier) devTotal += selections.tier.basePrice;
+        // Precio base automatico
+        devTotal += BASE_PRICE;
 
-        // Step 3: Complexity
+        // Tipo de proyecto
         if (selections.projectType) devTotal += selections.projectType.priceModifier;
 
-        // Step 4: Services
+        // Step 4: Services (solo cobra los NO incluidos)
+        const includedServices = selections.projectType?.includedServices || [];
         selections.services.forEach(svcId => {
+            // No cobrar si está incluido en el paquete
+            if (includedServices.includes(svcId)) return;
             const svc = SERVICES.find(s => s.id === svcId);
             if (svc) devTotal += svc.price;
         });
@@ -70,7 +75,13 @@ export const QuoteWizard = () => {
     const handleNext = () => setStep(prev => Math.min(prev + 1, totalSteps));
     const handleBack = () => setStep(prev => Math.max(prev - 1, 1));
 
+    // Obtener servicios incluidos del tipo de proyecto actual
+    const includedServices = selections.projectType?.includedServices || [];
+
     const toggleService = (id) => {
+        // No permitir toggle de servicios incluidos
+        if (includedServices.includes(id)) return;
+
         setSelections(prev => {
             const exists = prev.services.includes(id);
             return {
@@ -82,17 +93,133 @@ export const QuoteWizard = () => {
         });
     };
 
+    // Función para seleccionar tipo de proyecto y pre-seleccionar sus servicios
+    const handleProjectTypeSelect = (type) => {
+        setSelections(prev => {
+            // Combinar servicios incluidos del nuevo tipo con los ya seleccionados (sin duplicados)
+            const newIncluded = type.includedServices || [];
+            const currentServices = prev.services.filter(s => !prev.projectType?.includedServices?.includes(s));
+            const mergedServices = [...new Set([...newIncluded, ...currentServices])];
+
+            return {
+                ...prev,
+                projectType: type,
+                services: mergedServices
+            };
+        });
+    };
+
+    // Genera el mensaje pre-armado para WhatsApp
+    const generateWhatsAppMessage = (contactName, extraDetails = '') => {
+        const lines = [
+            `=== NUEVA COTIZACION - FORJA DIGITAL ===`,
+            ``,
+            `* Cliente: ${contactName}`,
+            `* Industria: ${selections.industry?.label || 'No especificada'}`,
+            `* Tipo de proyecto: ${selections.projectType?.title || 'No especificado'}`,
+            ``
+        ];
+
+        // Servicios seleccionados
+        if (selections.services.length > 0) {
+            lines.push(`FUNCIONALIDADES:`);
+            selections.services.forEach(svcId => {
+                const svc = SERVICES.find(s => s.id === svcId);
+                const isIncluded = includedServices.includes(svcId);
+                if (svc) {
+                    lines.push(`  - ${svc.label}${isIncluded ? ' (Incluido)' : ''}`);
+                }
+            });
+            lines.push(``);
+        }
+
+        // Infraestructura
+        if (selections.infra) {
+            lines.push(`HOSTING: ${selections.infra.title}`);
+        }
+
+        // Modelo de inversión y precios
+        lines.push(``);
+        lines.push(`INVERSION:`);
+        lines.push(`* Modelo: ${selections.model === 'one-time' ? 'Pago Unico' : 'Renta Mensual'}`);
+
+        if (selections.model === 'one-time') {
+            if (totalCost.discountEnabled) {
+                lines.push(`* Precio: $${totalCost.devTotal.toLocaleString()} -> $${totalCost.devTotalDiscounted.toLocaleString()} (${totalCost.discountPercent}% OFF)`);
+            } else {
+                lines.push(`* Precio: $${totalCost.devTotal.toLocaleString()}`);
+            }
+            if (totalCost.annualTotal > 0) {
+                lines.push(`* Hosting anual: $${totalCost.annualTotal.toLocaleString()}`);
+            }
+        } else {
+            if (totalCost.discountEnabled) {
+                lines.push(`* Renta mensual: $${Math.ceil(totalCost.monthlyRent).toLocaleString()} -> $${totalCost.monthlyRentDiscounted.toLocaleString()}/mes`);
+                lines.push(`* Pago inicial: $${totalCost.setupFeeDiscounted.toLocaleString()}`);
+            } else {
+                lines.push(`* Renta mensual: $${Math.ceil(totalCost.monthlyRent).toLocaleString()}/mes`);
+                lines.push(`* Pago inicial: $${Math.ceil(totalCost.setupFee).toLocaleString()}`);
+            }
+        }
+
+        if (extraDetails.trim()) {
+            lines.push(``);
+            lines.push(`DETALLES ADICIONALES:`);
+            lines.push(extraDetails);
+        }
+
+        lines.push(``);
+        lines.push(`---`);
+        lines.push(`Cotizacion generada desde forjadigital.com`);
+
+        return lines.join('\n');
+    };
+
+    // Abre WhatsApp con el mensaje pre-armado
+    const openWhatsApp = (contactName, extraDetails = '') => {
+        const message = generateWhatsAppMessage(contactName, extraDetails);
+        const encodedMessage = encodeURIComponent(message);
+        const whatsappUrl = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodedMessage}`;
+        window.open(whatsappUrl, '_blank');
+        setIsSubmitted(true);
+    };
+
     const handleContactSubmit = (e) => {
         e.preventDefault();
-        console.log("Enviando configuración:", selections, totalCost);
-        setIsSubmitted(true);
+        const formData = new FormData(e.target);
+        const contactName = formData.get('name') || 'Cliente';
+        const extraDetails = formData.get('details') || '';
+        openWhatsApp(contactName, extraDetails);
+    };
+
+    // Maneja envío del formulario de consulta
+    const handleConsultationSubmit = (e) => {
+        e.preventDefault();
+        const formData = new FormData(e.target);
+        const name = formData.get('name') || 'Cliente';
+        const idea = formData.get('idea') || '';
+
+        const message = [
+            `=== CONSULTA GRATUITA - FORJA DIGITAL ===`,
+            ``,
+            `* Nombre: ${name}`,
+            ``,
+            `MI IDEA:`,
+            idea,
+            ``,
+            `---`,
+            `Solicitud desde forjadigital.com`
+        ].join('\n');
+
+        const encodedMessage = encodeURIComponent(message);
+        window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${encodedMessage}`, '_blank');
+        setShowConsultation(false);
     };
 
     const canProceed = () => {
         if (step === 1) return !!selections.industry;
-        if (step === 2) return !!selections.tier;
-        if (step === 3) return !!selections.projectType;
-        if (step === 5) return !!selections.infra;
+        if (step === 2) return !!selections.projectType;
+        if (step === 4) return !!selections.infra;
         return true;
     };
 
@@ -109,12 +236,11 @@ export const QuoteWizard = () => {
                     <h2 className="text-3xl font-bold mb-2 text-white">Consulta Gratuita con Expertos</h2>
                     <p className="text-slate-400">¿Tu proyecto es único o tienes dudas? Hablemos directamente.</p>
                 </div>
-                <form className="max-w-md mx-auto space-y-4">
-                    <input type="text" placeholder="Nombre completo" className="w-full bg-dark-bg border border-dark-border rounded-lg p-3 text-white focus:border-brand-500 focus:outline-none" />
-                    <input type="tel" placeholder="WhatsApp" className="w-full bg-dark-bg border border-dark-border rounded-lg p-3 text-white focus:border-brand-500 focus:outline-none" />
-                    <textarea placeholder="Cuéntanos brevemente sobre tu idea..." className="w-full bg-dark-bg border border-dark-border rounded-lg p-3 text-white h-32 focus:border-brand-500 focus:outline-none"></textarea>
-                    <button type="submit" className="w-full bg-brand-500 hover:bg-brand-600 text-white font-bold py-3 rounded-lg flex items-center justify-center gap-2">
-                        Solicitar Llamada <ArrowRight size={20} />
+                <form onSubmit={handleConsultationSubmit} className="max-w-md mx-auto space-y-4">
+                    <input name="name" type="text" placeholder="Tu nombre" required className="w-full bg-dark-bg border border-dark-border rounded-lg p-3 text-white focus:border-brand-500 focus:outline-none" />
+                    <textarea name="idea" placeholder="Cuéntanos brevemente sobre tu idea..." required className="w-full bg-dark-bg border border-dark-border rounded-lg p-3 text-white h-32 focus:border-brand-500 focus:outline-none"></textarea>
+                    <button type="submit" className="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-3 rounded-lg flex items-center justify-center gap-2">
+                        <MessageCircle size={20} /> Chatear por WhatsApp
                     </button>
                 </form>
             </div>
@@ -170,27 +296,9 @@ export const QuoteWizard = () => {
                         </motion.div>
                     )}
 
-                    {/* STEP 2: BUSINESS TIER */}
+                    {/* STEP 2: PROJECT TYPE */}
                     {step === 2 && (
                         <motion.div key="step2" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
-                            <h2 className="text-3xl font-bold mb-6 text-center">Etapa del Negocio</h2>
-                            <div className="grid md:grid-cols-3 gap-6">
-                                {BUSINESS_TIERS.map(tier => (
-                                    <SelectCard
-                                        key={tier.id}
-                                        {...tier}
-                                        price={tier.basePrice}
-                                        isSelected={selections.tier?.id === tier.id}
-                                        onClick={() => setSelections(prev => ({ ...prev, tier }))}
-                                    />
-                                ))}
-                            </div>
-                        </motion.div>
-                    )}
-
-                    {/* STEP 3: PROJECT TYPE */}
-                    {step === 3 && (
-                        <motion.div key="step3" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
                             <h2 className="text-3xl font-bold mb-6 text-center">Tipo de Proyecto</h2>
                             <div className="grid md:grid-cols-3 gap-6">
                                 {PROJECT_TYPES.map(type => (
@@ -199,16 +307,16 @@ export const QuoteWizard = () => {
                                         {...type}
                                         price={type.priceModifier}
                                         isSelected={selections.projectType?.id === type.id}
-                                        onClick={() => setSelections(prev => ({ ...prev, projectType: type }))}
+                                        onClick={() => handleProjectTypeSelect(type)}
                                     />
                                 ))}
                             </div>
                         </motion.div>
                     )}
 
-                    {/* STEP 4: SERVICES */}
-                    {step === 4 && (
-                        <motion.div key="step4" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
+                    {/* STEP 3: SERVICES */}
+                    {step === 3 && (
+                        <motion.div key="step3" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
                             <h2 className="text-3xl font-bold mb-6 text-center">Funcionalidades Extra</h2>
                             <div className="grid md:grid-cols-2 gap-4">
                                 {SERVICES.map(svc => (
@@ -219,15 +327,16 @@ export const QuoteWizard = () => {
                                         icon={svc.icon}
                                         isSelected={selections.services.includes(svc.id)}
                                         onToggle={() => toggleService(svc.id)}
+                                        isIncluded={includedServices.includes(svc.id)}
                                     />
                                 ))}
                             </div>
                         </motion.div>
                     )}
 
-                    {/* STEP 5: INFRASTRUCTURE */}
-                    {step === 5 && (
-                        <motion.div key="step5" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
+                    {/* STEP 4: INFRASTRUCTURE */}
+                    {step === 4 && (
+                        <motion.div key="step4" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
                             <h2 className="text-3xl font-bold mb-6 text-center">Infraestructura (Hosting)</h2>
                             <div className="grid md:grid-cols-3 gap-6">
                                 {INFRASTRUCTURE.map(infra => (
@@ -239,15 +348,16 @@ export const QuoteWizard = () => {
                                         description={`${infra.description} Costo anual.`}
                                         isSelected={selections.infra?.id === infra.id}
                                         onClick={() => setSelections(prev => ({ ...prev, infra }))}
+                                        isQuote={infra.isQuote}
                                     />
                                 ))}
                             </div>
                         </motion.div>
                     )}
 
-                    {/* STEP 6: BUSINESS MODEL */}
-                    {step === 6 && (
-                        <motion.div key="step6" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
+                    {/* STEP 5: BUSINESS MODEL */}
+                    {step === 5 && (
+                        <motion.div key="step5" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
                             <h2 className="text-3xl font-bold mb-4 text-center">Modelo de Inversión</h2>
 
                             {/* Discount Banner */}
@@ -339,9 +449,9 @@ export const QuoteWizard = () => {
                         </motion.div>
                     )}
 
-                    {/* STEP 7: SUMMARY */}
-                    {step === 7 && (
-                        <motion.div key="step7" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="max-w-4xl mx-auto">
+                    {/* STEP 6: SUMMARY */}
+                    {step === 6 && (
+                        <motion.div key="step6" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="max-w-4xl mx-auto">
                             {!isSubmitted ? (
                                 <>
                                     <h2 className="text-3xl font-bold mb-8 text-center">Resumen Final</h2>
@@ -358,8 +468,8 @@ export const QuoteWizard = () => {
 
                                                 <div className="space-y-3">
                                                     <div className="flex justify-between">
-                                                        <span className="text-slate-400">Perfil: {selections.tier?.title}</span>
-                                                        <span className="text-white">${selections.tier?.basePrice.toLocaleString()}</span>
+                                                        <span className="text-slate-400">Precio base</span>
+                                                        <span className="text-white">${BASE_PRICE.toLocaleString()}</span>
                                                     </div>
                                                     <div className="flex justify-between">
                                                         <span className="text-slate-400">Tipo: {selections.projectType?.title}</span>
@@ -427,18 +537,28 @@ export const QuoteWizard = () => {
                                         </div>
 
                                         {/* Contact Form */}
-                                        <form onSubmit={handleContactSubmit} className="space-y-4">
-                                            {/* Standard Fields... */}
-                                            <input required type="text" placeholder="Nombre completo" className="w-full bg-dark-bg border border-dark-border rounded-lg p-3 text-white focus:border-brand-500 focus:outline-none" />
-                                            <input required type="email" placeholder="Correo electrónico" className="w-full bg-dark-bg border border-dark-border rounded-lg p-3 text-white focus:border-brand-500 focus:outline-none" />
-                                            <input required type="tel" placeholder="WhatsApp / Teléfono" className="w-full bg-dark-bg border border-dark-border rounded-lg p-3 text-white focus:border-brand-500 focus:outline-none" />
-                                            <textarea placeholder="Cuéntanos más detalles..." className="w-full bg-dark-bg border border-dark-border rounded-lg p-3 text-white h-32 focus:border-brand-500 focus:outline-none"></textarea>
+                                        <div className="space-y-4">
+                                            <div className="bg-brand-500/10 border border-brand-500/30 rounded-lg p-4 mb-6">
+                                                <p className="text-brand-300 text-sm text-center">
+                                                    👋 <strong>¡Sin compromiso!</strong><br />
+                                                    Envía tu cotización para que podamos platicar sobre tu idea.<br />
+                                                    No se te cobrará nada en este momento.
+                                                </p>
+                                            </div>
 
-                                            <button type="submit" className="w-full bg-brand-500 hover:bg-brand-600 text-white font-bold py-4 rounded-xl flex items-center justify-center gap-2 transition-all">
-                                                <Send size={20} />
-                                                Enviar y Agendar
-                                            </button>
-                                        </form>
+                                            <form onSubmit={handleContactSubmit} className="space-y-4">
+                                                <input name="name" required type="text" placeholder="Tu nombre" className="w-full bg-dark-bg border border-dark-border rounded-lg p-3 text-white focus:border-brand-500 focus:outline-none" />
+                                                <textarea name="details" placeholder="Detalles adicionales (opcional)" className="w-full bg-dark-bg border border-dark-border rounded-lg p-3 text-white h-24 focus:border-brand-500 focus:outline-none"></textarea>
+
+                                                <button type="submit" className="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-4 rounded-xl flex items-center justify-center gap-2 transition-all shadow-lg shadow-green-500/20 hover:shadow-green-500/40 transform hover:-translate-y-1">
+                                                    <MessageCircle size={24} />
+                                                    Enviar Cotización por WhatsApp
+                                                </button>
+                                                <p className="text-slate-500 text-xs text-center mt-2">
+                                                    Te abrirá un chat directo con nosotros para afinar detalles.
+                                                </p>
+                                            </form>
+                                        </div>
                                     </div>
                                 </>
                             ) : (

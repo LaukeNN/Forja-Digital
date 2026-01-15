@@ -3,22 +3,16 @@ import { Github, Twitter, Linkedin } from 'lucide-react';
 
 const TEAM = [
     {
-        name: "Alex Dev",
-        role: "Lead Full Stack",
-        image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?fit=crop&w=400&q=80",
-        bio: "Experto en React y arquitecturas escalables."
+        name: "Alvaro Maxwell",
+        role: "Cofundador & Lead Developer",
+        image: "/alvaro.png",
+        bio: "Visionario tecnológico enfocado en soluciones escalables y arquitectura de software."
     },
     {
-        name: "Sarah Design",
-        role: "UI/UX Specialist",
-        image: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?fit=crop&w=400&q=80",
-        bio: "Obsesionada con el minimalismo y la experiencia de usuario."
-    },
-    {
-        name: "Mike Systems",
-        role: "DevOps Engineer",
-        image: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?fit=crop&w=400&q=80",
-        bio: "Garantizando que tu sitio vuele y nunca caiga."
+        name: "Rene Ayala",
+        role: "Cofundador & Tech Lead",
+        image: "/rene.png",
+        bio: "Especialista en desarrollo full-stack y optimización de experiencia de usuario."
     }
 ];
 
@@ -29,11 +23,11 @@ export const Team = () => {
                 <div className="text-center mb-16">
                     <h2 className="text-4xl font-bold mb-4">Mentes Maestras</h2>
                     <p className="text-slate-400 max-w-xl mx-auto">
-                        Un equipo apasionado por el código limpio y el diseño funcional.
+                        Liderando la innovación digital con pasión y excelencia técnica.
                     </p>
                 </div>
 
-                <div className="grid md:grid-cols-3 gap-8">
+                <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
                     {TEAM.map((member, idx) => (
                         <div key={idx} className="group relative bg-dark-card border border-white/5 rounded-2xl overflow-hidden hover:border-brand-500/30 transition-all duration-500">
                             <div className="aspect-[4/3] overflow-hidden">

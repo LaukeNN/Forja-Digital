@@ -1,4 +1,4 @@
-import { Store, Building2, Building, Monitor, Layers, ShoppingBag, Users, Database, CreditCard, MessageCircle, FileText, Globe, Server, Cloud, ShieldCheck, UtensilsCrossed, Home, Shirt, GraduationCap, Briefcase, HeartPulse } from 'lucide-react';
+import { Store, Building2, Building, Monitor, Layers, ShoppingBag, Users, Database, CreditCard, MessageCircle, FileText, Globe, Server, Cloud, ShieldCheck, UtensilsCrossed, Home, Shirt, GraduationCap, Briefcase, HeartPulse, Calendar, MapPin } from 'lucide-react';
 
 export const INDUSTRIES = [
     { id: 'restaurant', label: 'Restaurante / Gastronomía', icon: UtensilsCrossed },
@@ -10,62 +10,47 @@ export const INDUSTRIES = [
     { id: 'other', label: 'Otro / General', icon: Store }
 ];
 
-export const BUSINESS_TIERS = [
-    {
-        id: 'entrepreneur',
-        title: 'Emprendedor / Idea Nueva',
-        description: 'Ideal para validar tu idea o iniciar tu presencia digital.',
-        basePrice: 7000,
-        icon: Store
-    },
-    {
-        id: 'pyme',
-        title: 'PyME en Crecimiento',
-        description: 'Para negocios establecidos que buscan expandirse.',
-        basePrice: 20000,
-        icon: Building2
-    },
-    {
-        id: 'corporate',
-        title: 'Gran Empresa / Corporativo',
-        description: 'Soluciones robustas y escalables de alto nivel.',
-        basePrice: 50000,
-        icon: Building
-    }
-];
+// Precio base que se suma a todas las cotizaciones
+export const BASE_PRICE = 5000;
 
 export const PROJECT_TYPES = [
     {
         id: 'landing',
-        title: 'Landing Page',
-        description: 'Una sola página de alto impacto enfocada en conversión.',
+        title: 'Página Web Base',
+        description: 'LandingPage.Una página profesional para tu negocio. Tú eliges qué necesitas.',
         priceModifier: 0,
+        includedServices: [], // El usuario elige las funcionalidades
         icon: Monitor
     },
     {
         id: 'corporate_site',
         title: 'Sitio Corporativo',
-        description: '5-8 secciones informativas sobre tu empresa y servicios.',
-        priceModifier: 5000,
+        description: 'Pagina Web Base + 2-5 secciones informativas. Incluye Login y Blog.',
+        priceModifier: 7000,
+        includedServices: ['login', 'blog'], // Login + Blog incluidos
         icon: Layers
     },
     {
         id: 'webapp',
         title: 'Web App / E-commerce',
-        description: 'Funcionalidad compleja, ventas en línea o gestión.',
-        priceModifier: 15000,
+        description: 'Pagina Web Base + Tienda en línea o sistema de gestión. Todo incluido.',
+        priceModifier: 12000,
+        includedServices: ['login', 'catalog', 'payments'], // Login + Catálogo + Pagos
         icon: ShoppingBag
     }
 ];
 
 export const SERVICES = [
-    { id: 'login', label: 'Login / Registro de Usuarios', price: 6000, icon: Users },
-    { id: 'catalog', label: 'Catálogo de Productos', price: 5000, icon: ShoppingBag },
-    { id: 'inventory', label: 'Sistema de Inventarios', price: 10000, icon: Database },
-    { id: 'payments', label: 'Pasarela de Pagos', price: 4000, icon: CreditCard },
-    { id: 'chat', label: 'Chat en Vivo / WhatsApp', price: 2000, icon: MessageCircle },
-    { id: 'blog', label: 'Blog Autoadministrable', price: 3000, icon: FileText },
-    { id: 'multilang', label: 'Multilenguaje', price: 2500, icon: Globe },
+    { id: 'login', label: 'Login / Registro de Usuarios', price: 3000, icon: Users },
+    { id: 'catalog', label: 'Catálogo de Productos', price: 3000, icon: ShoppingBag },
+    { id: 'inventory', label: 'Sistema de Inventarios', price: 6000, icon: Database },
+    { id: 'payments', label: 'Pasarela de Pagos', price: 6000, icon: CreditCard },
+    { id: 'blog', label: 'Blog Autoadministrable', price: 4000, icon: FileText },
+    { id: 'multilang', label: 'Multilenguaje', price: 1500, icon: Globe },
+    { id: 'chatbot', label: 'Chatbot con IA (Entrenado)', price: 2500, icon: MessageCircle },
+    { id: 'agenda', label: 'Agenda de Citas', price: 2000, icon: Calendar },
+    { id: 'google_maps', label: 'Mapa en Google Maps (Negocio Local)', price: 500, icon: MapPin },
+    { id: 'whatsapp_button', label: 'Botón de WhatsApp (Con mensaje pre-armado)', price: 500, icon: MessageCircle }
 ];
 
 export const INFRASTRUCTURE = [
@@ -73,7 +58,7 @@ export const INFRASTRUCTURE = [
         id: 'basic',
         title: 'Plan Básico',
         description: 'Hosting compartido. Ideal para Landings.',
-        annualPrice: 1500,
+        annualPrice: 2200,
         icon: Server
     },
     {
@@ -94,7 +79,7 @@ export const INFRASTRUCTURE = [
 ];
 
 export const CONFIG = {
-    rentSetupFeePercent: 0.20, // 20%
+    rentSetupFeePercent: 0.15, // 15%
     rentMonthlyPercent: 0.05,  // 5%
 };
 
@@ -103,7 +88,7 @@ export const CONFIG = {
 // ==========================================
 export const DISCOUNT = {
     enabled: true,              // true = mostrar descuento, false = ocultar
-    percent: 35,                // Porcentaje de descuento (ej: 35 = 35%)
+    percent: 25,                // Porcentaje de descuento (ej: 35 = 35%)
     label: '¡OFERTA DE LANZAMIENTO!',  // Texto del badge
     subLabel: 'Por tiempo limitado',    // Subtexto opcional
 };

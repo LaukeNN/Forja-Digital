@@ -2,7 +2,7 @@ import React from 'react';
 import clsx from 'clsx';
 import { motion } from 'framer-motion';
 
-export const SelectCard = ({ title, description, price, isSelected, onClick, icon: Icon }) => {
+export const SelectCard = ({ title, description, price, isSelected, onClick, icon: Icon, isQuote }) => {
     return (
         <motion.div
             whileHover={{ scale: 1.02 }}
@@ -33,7 +33,7 @@ export const SelectCard = ({ title, description, price, isSelected, onClick, ico
             </div>
             {price !== undefined && (
                 <div className="mt-auto pt-4 text-brand-400 font-semibold">
-                    {price === 0 ? 'Consultar' : `+$${price.toLocaleString()}`}
+                    {isQuote ? 'Consultar' : (price === 0 ? 'Ya incluido' : `+$${price.toLocaleString()}`)}
                 </div>
             )}
         </motion.div>

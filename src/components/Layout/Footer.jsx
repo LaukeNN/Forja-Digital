@@ -2,9 +2,8 @@ import React from 'react';
 import { Twitter, Instagram, Linkedin, Mail, Code2, Phone } from 'lucide-react';
 
 const TEAM_MINI = [
-    { name: "Alex", role: "Dev", img: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?fit=crop&w=150&q=80" },
-    { name: "Sarah", role: "Design", img: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?fit=crop&w=150&q=80" },
-    { name: "Mike", role: "Sys", img: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?fit=crop&w=150&q=80" }
+    { name: "Alvaro", role: "Dev", img: "/alvaro.png" },
+    { name: "Rene", role: "Dev", img: "/rene.png" }
 ];
 
 
@@ -48,11 +47,11 @@ export const Footer = () => {
                         <h4 className="text-white font-bold mb-6 text-sm uppercase tracking-wider">Contáctanos</h4>
                         <div className="space-y-2 text-slate-400 text-sm">
                             <div className="flex items-center justify-end gap-2 group">
-                                <span className="group-hover:text-brand-400 transition-colors">+52 55 1234 5678</span>
+                                <span className="group-hover:text-brand-400 transition-colors">+52 653 146 3159</span>
                                 <Phone size={16} className="text-brand-500" />
                             </div>
                             <div className="flex items-center justify-end gap-2 group">
-                                <span className="group-hover:text-brand-400 transition-colors">+52 55 8765 4321</span>
+                                <span className="group-hover:text-brand-400 transition-colors">+52 653 106 2141</span>
                                 <Phone size={16} className="text-brand-500" />
                             </div>
                         </div>

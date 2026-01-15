@@ -6,6 +6,7 @@ import { ProcessTimeline } from './components/Sections/ProcessTimeline';
 import { FAQSection } from './components/Sections/FAQSection';
 import { Footer } from './components/Layout/Footer';
 import { ChatBot } from './components/AI/ChatBot';
+import { Team } from './components/Layout/Team';
 
 function App() {
   const wizardRef = useRef(null);
