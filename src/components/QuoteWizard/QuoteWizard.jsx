@@ -1,12 +1,12 @@
 import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronRight, ChevronLeft, CheckCircle2, RotateCcw, HelpCircle, MessageCircle } from 'lucide-react';
+import { ChevronRight, ChevronLeft, CheckCircle2, RotateCcw, HelpCircle, MessageCircle, Percent } from 'lucide-react';
 import { BASE_PRICE, PROJECT_TYPES, SERVICES, INFRASTRUCTURE, CONFIG, INDUSTRIES, DISCOUNT } from '../../data/pricing';
 import { SelectCard } from '../UI/SelectCard';
 import { CheckboxCard } from '../UI/CheckboxCard';
 
 // Número de WhatsApp para contacto
-const WHATSAPP_NUMBER = '526531463159';
+const WHATSAPP_NUMBER = '526531062141';
 
 export const QuoteWizard = () => {
     const [step, setStep] = useState(1);
@@ -24,7 +24,7 @@ export const QuoteWizard = () => {
 
     const totalCost = useMemo(() => {
         let devTotal = 0;
-        let annualTotal = 0;
+        let monthlyInfraTotal = 0;
 
         // Precio base automatico
         devTotal += BASE_PRICE;
@@ -42,23 +42,28 @@ export const QuoteWizard = () => {
         });
 
         // Step 5: Infra
-        if (selections.infra) annualTotal += selections.infra.annualPrice;
+        if (selections.infra) monthlyInfraTotal += selections.infra.monthlyPrice;
 
         // WAAS Calculations
-        const setupFee = devTotal * CONFIG.rentSetupFeePercent;
+        // Sin costo de setup para modelo mensual (Requerimiento)
+        const setupFee = 0;
 
-        // Monthly Rent = (5% of Dev) + (Annual Infra / 12)
-        const monthlyRent = (devTotal * CONFIG.rentMonthlyPercent) + (annualTotal / 12);
+        // Monthly Rent = (Dev Total * Percentage)
+        // Hosting ya no se suma aparte en el plan mensual según requerimiento
+        const monthlyRent = (devTotal * CONFIG.rentMonthlyPercent);
 
         // Discount calculations
         const discountMultiplier = DISCOUNT.enabled ? (1 - DISCOUNT.percent / 100) : 1;
         const devTotalDiscounted = Math.ceil(devTotal * discountMultiplier);
-        const setupFeeDiscounted = Math.ceil(setupFee * discountMultiplier);
+
+        // Setup fee is now 0, so discounted is also 0
+        const setupFeeDiscounted = 0;
+
         const monthlyRentDiscounted = Math.ceil(monthlyRent * discountMultiplier);
 
         return {
             devTotal,
-            annualTotal,
+            monthlyInfraTotal, // Renamed from annualTotal
             setupFee,
             monthlyRent,
             // Discounted values
@@ -135,7 +140,7 @@ export const QuoteWizard = () => {
 
         // Infraestructura
         if (selections.infra) {
-            lines.push(`HOSTING: ${selections.infra.title}`);
+            lines.push(`HOSTING: ${selections.infra.title} ($${selections.infra.monthlyPrice}/mes)`);
         }
 
         // Modelo de inversión y precios
@@ -149,16 +154,16 @@ export const QuoteWizard = () => {
             } else {
                 lines.push(`* Precio: $${totalCost.devTotal.toLocaleString()}`);
             }
-            if (totalCost.annualTotal > 0) {
-                lines.push(`* Hosting anual: $${totalCost.annualTotal.toLocaleString()}`);
+            if (totalCost.monthlyInfraTotal > 0) {
+                lines.push(`* Hosting mensual: $${totalCost.monthlyInfraTotal.toLocaleString()}/mes`);
             }
         } else {
             if (totalCost.discountEnabled) {
-                lines.push(`* Renta mensual: $${Math.ceil(totalCost.monthlyRent).toLocaleString()} -> $${totalCost.monthlyRentDiscounted.toLocaleString()}/mes`);
-                lines.push(`* Pago inicial: $${totalCost.setupFeeDiscounted.toLocaleString()}`);
+                lines.push(`* Renta mensual: $${totalCost.monthlyRentDiscounted.toLocaleString()} (1er Mes) -> $${Math.ceil(totalCost.monthlyRent).toLocaleString()}/mes (Resto)`);
+                lines.push(`* Pago inicial: $0 (Bonificado)`);
             } else {
                 lines.push(`* Renta mensual: $${Math.ceil(totalCost.monthlyRent).toLocaleString()}/mes`);
-                lines.push(`* Pago inicial: $${Math.ceil(totalCost.setupFee).toLocaleString()}`);
+                lines.push(`* Pago inicial: $0`);
             }
         }
 
@@ -259,6 +264,29 @@ export const QuoteWizard = () => {
                 </button>
             </div>
 
+            {/* Discount Banner Top */}
+            {totalCost.discountEnabled && !isSubmitted && step === 1 && (
+                <div className="mb-6 p-4 rounded-xl bg-gradient-to-r from-emerald-600 via-green-500 to-emerald-600 animate-gradient-x shadow-lg shadow-green-500/20 text-white flex items-center justify-between relative overflow-hidden group">
+                    <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 brightness-100 contrast-150"></div>
+                    <div className="flex items-center gap-4 relative z-10">
+                        <div className="bg-white/20 p-2 rounded-lg backdrop-blur-sm">
+                            <Percent size={28} className="text-white animate-pulse" />
+                        </div>
+                        <div>
+                            <h3 className="font-bold text-xl leading-none">
+                                {totalCost.discountLabel}
+                            </h3>
+                            <p className="text-white/90 text-sm mt-1 font-medium">
+                                Obtén un <span className="bg-white text-emerald-600 px-1 rounded font-bold">{totalCost.discountPercent}% OFF</span> en tu desarrollo o primer mes de renta.
+                            </p>
+                        </div>
+                    </div>
+                    <div className="hidden md:block relative z-10">
+                        <span className="text-xs font-bold border border-white/30 px-3 py-1 rounded-full uppercase tracking-wider">Oferta Limitada</span>
+                    </div>
+                </div>
+            )}
+
             {/* Progress Bar */}
             <div className="mb-8">
                 <div className="flex justify-between text-sm mb-2 text-slate-400">
@@ -305,7 +333,7 @@ export const QuoteWizard = () => {
                                     <SelectCard
                                         key={type.id}
                                         {...type}
-                                        price={type.priceModifier}
+                                        price={type.priceModifier + BASE_PRICE}
                                         isSelected={selections.projectType?.id === type.id}
                                         onClick={() => handleProjectTypeSelect(type)}
                                     />
@@ -338,18 +366,20 @@ export const QuoteWizard = () => {
                     {step === 4 && (
                         <motion.div key="step4" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
                             <h2 className="text-3xl font-bold mb-6 text-center">Infraestructura (Hosting)</h2>
-                            <div className="grid md:grid-cols-3 gap-6">
+                            <div className="flex flex-wrap justify-center gap-6">
                                 {INFRASTRUCTURE.map(infra => (
-                                    <SelectCard
-                                        key={infra.id}
-                                        {...infra}
-                                        title={infra.title}
-                                        price={infra.annualPrice}
-                                        description={`${infra.description} Costo anual.`}
-                                        isSelected={selections.infra?.id === infra.id}
-                                        onClick={() => setSelections(prev => ({ ...prev, infra }))}
-                                        isQuote={infra.isQuote}
-                                    />
+                                    <div key={infra.id} className="w-full md:w-1/3 max-w-[320px]">
+                                        <SelectCard
+                                            {...infra}
+                                            title={infra.title}
+                                            price={infra.monthlyPrice}
+                                            priceSuffix="/mes"
+                                            description={`${infra.description} Costo mensual.`}
+                                            isSelected={selections.infra?.id === infra.id}
+                                            onClick={() => setSelections(prev => ({ ...prev, infra }))}
+                                            isQuote={infra.isQuote}
+                                        />
+                                    </div>
                                 ))}
                             </div>
                         </motion.div>
@@ -404,7 +434,7 @@ export const QuoteWizard = () => {
                                         )}
 
                                         <div className="text-sm text-slate-400">
-                                            + ${totalCost.annualTotal.toLocaleString()}/año de servidor
+                                            + ${totalCost.monthlyInfraTotal.toLocaleString()}/mes de servidor
                                         </div>
                                     </div>
                                 </div>
@@ -421,15 +451,19 @@ export const QuoteWizard = () => {
 
                                         {totalCost.discountEnabled ? (
                                             <>
-                                                <div className="text-xl text-slate-500 line-through mb-1">
-                                                    ${Math.ceil(totalCost.monthlyRent).toLocaleString()}/mes
+                                                <div className="flex items-end justify-center gap-2 mb-2">
+                                                    <div className="text-4xl font-bold text-emerald-400">
+                                                        ${totalCost.monthlyRentDiscounted.toLocaleString()}
+                                                    </div>
+                                                    <div className="text-lg font-medium text-emerald-300 mb-1">
+                                                        (1er Mes)
+                                                    </div>
                                                 </div>
-                                                <div className="text-4xl font-bold text-emerald-400 mb-2">
-                                                    ${totalCost.monthlyRentDiscounted.toLocaleString()}
-                                                    <span className="text-lg font-normal text-emerald-300">/mes</span>
+                                                <div className="text-lg text-slate-400 mb-4">
+                                                    luego ${Math.ceil(totalCost.monthlyRent).toLocaleString()}/mes
                                                 </div>
-                                                <div className="text-sm text-slate-400">
-                                                    Pago inicial: <span className="line-through">${Math.ceil(totalCost.setupFee).toLocaleString()}</span> <span className="text-emerald-400 font-medium">${totalCost.setupFeeDiscounted.toLocaleString()}</span>
+                                                <div className="text-sm font-bold text-white bg-white/10 py-1 px-3 rounded-full inline-block">
+                                                    ¡Sin Pago Inicial!
                                                 </div>
                                             </>
                                         ) : (
@@ -439,7 +473,7 @@ export const QuoteWizard = () => {
                                                     <span className="text-lg font-normal text-slate-500">/mes</span>
                                                 </div>
                                                 <div className="text-sm text-slate-400">
-                                                    Pago inicial: ${Math.ceil(totalCost.setupFee).toLocaleString()}
+                                                    Pago inicial: $0
                                                 </div>
                                             </>
                                         )}
@@ -468,13 +502,15 @@ export const QuoteWizard = () => {
 
                                                 <div className="space-y-3">
                                                     <div className="flex justify-between">
-                                                        <span className="text-slate-400">Precio base</span>
+                                                        <span className="text-slate-400">Página web base (Landing page)</span>
                                                         <span className="text-white">${BASE_PRICE.toLocaleString()}</span>
                                                     </div>
-                                                    <div className="flex justify-between">
-                                                        <span className="text-slate-400">Tipo: {selections.projectType?.title}</span>
-                                                        <span className="text-white">+${selections.projectType?.priceModifier.toLocaleString()}</span>
-                                                    </div>
+                                                    {selections.projectType?.priceModifier > 0 && (
+                                                        <div className="flex justify-between">
+                                                            <span className="text-slate-400">Tipo: {selections.projectType?.title}</span>
+                                                            <span className="text-white">+${selections.projectType?.priceModifier.toLocaleString()}</span>
+                                                        </div>
+                                                    )}
                                                     {selections.services.map(id => {
                                                         const s = SERVICES.find(x => x.id === id);
                                                         return (
@@ -508,7 +544,7 @@ export const QuoteWizard = () => {
                                                         <div className="text-4xl font-bold mb-1">
                                                             ${totalCost.discountEnabled ? totalCost.devTotalDiscounted.toLocaleString() : totalCost.devTotal.toLocaleString()}
                                                         </div>
-                                                        <div className="text-sm opacity-75">+ ${totalCost.annualTotal.toLocaleString()}/año (Hosting)</div>
+                                                        <div className="text-sm opacity-75">+ ${totalCost.monthlyInfraTotal.toLocaleString()}/mes (Hosting)</div>
                                                         {totalCost.discountEnabled && (
                                                             <div className="mt-3 text-yellow-300 text-sm font-medium">
                                                                 ¡Ahorras ${(totalCost.devTotal - totalCost.devTotalDiscounted).toLocaleString()}!
@@ -518,19 +554,20 @@ export const QuoteWizard = () => {
                                                 ) : (
                                                     <>
                                                         {totalCost.discountEnabled && (
-                                                            <div className="text-xl opacity-60 line-through mb-1">${Math.ceil(totalCost.monthlyRent).toLocaleString()}/mes</div>
-                                                        )}
-                                                        <div className="text-4xl font-bold mb-1">
-                                                            ${totalCost.discountEnabled ? totalCost.monthlyRentDiscounted.toLocaleString() : Math.ceil(totalCost.monthlyRent).toLocaleString()}/mes
-                                                        </div>
-                                                        <div className="text-sm opacity-75">
-                                                            Setup: ${totalCost.discountEnabled ? totalCost.setupFeeDiscounted.toLocaleString() : Math.ceil(totalCost.setupFee).toLocaleString()}
-                                                        </div>
-                                                        {totalCost.discountEnabled && (
-                                                            <div className="mt-3 text-yellow-300 text-sm font-medium">
-                                                                ¡Ahorras ${(Math.ceil(totalCost.monthlyRent) - totalCost.monthlyRentDiscounted).toLocaleString()}/mes!
+                                                            <div className="text-sm text-yellow-300 font-bold mb-1">
+                                                                ¡{totalCost.discountPercent}% OFF PRIMER MES!
                                                             </div>
                                                         )}
+                                                        <div className="text-4xl font-bold mb-1">
+                                                            ${totalCost.discountEnabled ? totalCost.monthlyRentDiscounted.toLocaleString() : Math.ceil(totalCost.monthlyRent).toLocaleString()}
+                                                            <span className="text-lg opacity-80 font-normal"> (1er Mes)</span>
+                                                        </div>
+                                                        <div className="text-lg opacity-80 mb-2">
+                                                            Luego ${Math.ceil(totalCost.monthlyRent).toLocaleString()}/mes
+                                                        </div>
+                                                        <div className="text-sm font-bold bg-black/20 inline-block px-3 py-1 rounded-full">
+                                                            Sin Pago Inicial
+                                                        </div>
                                                     </>
                                                 )}
                                             </div>

@@ -11,13 +11,13 @@ export const INDUSTRIES = [
 ];
 
 // Precio base que se suma a todas las cotizaciones
-export const BASE_PRICE = 5000;
+export const BASE_PRICE = 6000;
 
 export const PROJECT_TYPES = [
     {
         id: 'landing',
-        title: 'Página Web Base',
-        description: 'LandingPage.Una página profesional para tu negocio. Tú eliges qué necesitas.',
+        title: 'Personaliza tu Sitio Web',
+        description: 'Sitio web ya armado que puedes personalizar. Tú eliges las funcionalidades que necesitas.',
         priceModifier: 0,
         includedServices: [], // El usuario elige las funcionalidades
         icon: Monitor
@@ -58,29 +58,21 @@ export const INFRASTRUCTURE = [
         id: 'basic',
         title: 'Plan Básico',
         description: 'Hosting compartido. Ideal para Landings.',
-        annualPrice: 2200,
+        monthlyPrice: 300,
         icon: Server
     },
     {
         id: 'pro',
         title: 'Plan Pro',
         description: 'VPS + 50GB Almacenamiento. Para Apps y PyMEs.',
-        annualPrice: 5000,
+        monthlyPrice: 500,
         icon: Cloud
-    },
-    {
-        id: 'enterprise',
-        title: 'Plan Enterprise',
-        description: 'Servidor Dedicado + Cloud Storage.',
-        annualPrice: 0, // Quote
-        isQuote: true,
-        icon: ShieldCheck
     }
 ];
 
 export const CONFIG = {
     rentSetupFeePercent: 0.15, // 15%
-    rentMonthlyPercent: 0.05,  // 5%
+    rentMonthlyPercent: 1 / 6, // 16.66% (~6 meses de retorno)
 };
 
 // ==========================================
