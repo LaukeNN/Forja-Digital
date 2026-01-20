@@ -9,7 +9,7 @@ export const CheckboxCard = ({ title, price, isSelected, onToggle, icon: Icon, i
             whileHover={!isIncluded ? { scale: 1.02 } : {}}
             onClick={!isIncluded ? onToggle : undefined}
             className={clsx(
-                "p-4 rounded-xl border transition-all duration-300 flex items-center justify-between gap-4",
+                "p-3 md:p-4 rounded-xl border transition-all duration-300 flex items-center justify-between gap-4",
                 isIncluded
                     ? "bg-emerald-500/10 border-emerald-500/50 cursor-default"
                     : isSelected

@@ -1,12 +1,13 @@
 import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronRight, ChevronLeft, CheckCircle2, RotateCcw, HelpCircle, MessageCircle, Percent } from 'lucide-react';
-import { BASE_PRICE, PROJECT_TYPES, SERVICES, INFRASTRUCTURE, CONFIG, INDUSTRIES, DISCOUNT } from '../../data/pricing';
+import { ChevronRight, ChevronLeft, CheckCircle2, RotateCcw, HelpCircle, MessageCircle, Percent, AlertTriangle, ShieldCheck } from 'lucide-react';
+import { BASE_PRICE, PROJECT_TYPES, SERVICES, INFRASTRUCTURE, CONFIG, INDUSTRIES, DISCOUNT, PRICING_RULES } from '../../data/pricing';
 import { SelectCard } from '../UI/SelectCard';
 import { CheckboxCard } from '../UI/CheckboxCard';
 
 // Número de WhatsApp para contacto
 const WHATSAPP_NUMBER = '526531062141';
+const COMPLEX_SERVICES = ['login', 'inventory', 'payments', 'blog', 'agenda'];
 
 export const QuoteWizard = () => {
     const [step, setStep] = useState(1);
@@ -15,7 +16,8 @@ export const QuoteWizard = () => {
         projectType: null,// Step 2
         services: [],     // Step 3
         infra: null,      // Step 4
-        model: 'one-time' // Step 5
+        model: 'one-time',// Step 5
+        maintenance: false // Upsell mantenimiento
     });
     const [isSubmitted, setIsSubmitted] = useState(false);
     const [showConsultation, setShowConsultation] = useState(false);
@@ -32,6 +34,17 @@ export const QuoteWizard = () => {
         // Tipo de proyecto
         if (selections.projectType) devTotal += selections.projectType.priceModifier;
 
+        // Logic Guard: Detect Complexity Upgrade
+        const isLanding = selections.projectType?.id === 'landing';
+        const hasComplexService = selections.services.some(s => COMPLEX_SERVICES.includes(s));
+        const isComplexUpgrade = isLanding && hasComplexService;
+
+        if (isComplexUpgrade) {
+            // Ajuste automático: Si es Landing ($6k) y agrega complejos, sube a base de Web App ($15k)
+            // Diferencia: 15000 - 6000 = 9000
+            devTotal += 9000;
+        }
+
         // Step 4: Services (solo cobra los NO incluidos)
         const includedServices = selections.projectType?.includedServices || [];
         selections.services.forEach(svcId => {
@@ -42,30 +55,52 @@ export const QuoteWizard = () => {
         });
 
         // Step 5: Infra
-        if (selections.infra) monthlyInfraTotal += selections.infra.monthlyPrice;
+        if (selections.infra) {
+            // En modelo WAAS (Renta), el hosting ya está incluido en el precio base.
+            // Solo se suma en modelo One-time.
+            if (selections.model === 'waas') {
+                monthlyInfraTotal = 0;
+            } else {
+                monthlyInfraTotal += selections.infra.monthlyPrice;
+            }
+        }
 
-        // WAAS Calculations
-        // Sin costo de setup para modelo mensual (Requerimiento)
-        const setupFee = 0;
+        // Upsell: Mantenimiento mensual
+        const maintenanceFee = selections.maintenance ? PRICING_RULES.MAINTENANCE_FEE : 0;
+        const totalMonthlyRecurring = monthlyInfraTotal + maintenanceFee;
 
-        // Monthly Rent = (Dev Total * Percentage)
-        // Hosting ya no se suma aparte en el plan mensual según requerimiento
-        const monthlyRent = (devTotal * CONFIG.rentMonthlyPercent);
+        // Monthly Rent Logic (Híbrida)
+        let monthlyRent = 0;
+        if (selections.projectType?.id === 'landing' && !isComplexUpgrade) {
+            monthlyRent = 500; // Precio fijo para Landing simple
+        } else {
+            // Fórmula porcentual para el resto
+            const monthlyRentRaw = devTotal * CONFIG.rentMonthlyPercent;
+            monthlyRent = Math.ceil(monthlyRentRaw / 50) * 50;
+        }
 
-        // Discount calculations
+        // Discount calculations (solo aplica a desarrollo, no a mensualidades)
         const discountMultiplier = DISCOUNT.enabled ? (1 - DISCOUNT.percent / 100) : 1;
         const devTotalDiscounted = Math.ceil(devTotal * discountMultiplier);
 
+        // Cálculo de cuotas (3 pagos)
+        const installmentsPrice = Math.ceil(devTotalDiscounted / 3);
+
         // Setup fee is now 0, so discounted is also 0
+        const setupFee = 0;
         const setupFeeDiscounted = 0;
 
-        const monthlyRentDiscounted = Math.ceil(monthlyRent * discountMultiplier);
+        // La renta mensual NO tiene descuento en este modelo híbrido definitivo
+        const monthlyRentDiscounted = monthlyRent;
 
         return {
-            devTotal,
-            monthlyInfraTotal, // Renamed from annualTotal
+            devTotal, // Total desarrollo sin descuento
+            monthlyInfraTotal, // Infra (si aplica)
+            maintenanceFee, // Fee mantenimiento opcional
+            totalMonthlyRecurring, // Total mensual recurrente (Infra + Mto)
             setupFee,
-            monthlyRent,
+            monthlyRent, // Renta base calculada
+            installmentsPrice, // Valor cuota 1/3
             // Discounted values
             devTotalDiscounted,
             setupFeeDiscounted,
@@ -74,6 +109,7 @@ export const QuoteWizard = () => {
             discountEnabled: DISCOUNT.enabled,
             discountLabel: DISCOUNT.label,
             discountSubLabel: DISCOUNT.subLabel,
+            isComplexUpgrade // Export flag for UI
         };
     }, [selections]);
 
@@ -252,8 +288,41 @@ export const QuoteWizard = () => {
         );
     }
 
+    const MobileStickyFooter = () => (
+        <div className={`fixed bottom-0 left-0 w-full z-50 bg-gray-950 border-t border-brand-500/50 shadow-[0_-5px_30px_rgba(0,0,0,0.8)] p-4 md:hidden pb-safe transition-transform duration-300 ${step === totalSteps || isSubmitted ? 'translate-y-full' : 'translate-y-0'}`}>
+            <div className="flex justify-between items-center gap-4">
+                <div className="flex flex-col">
+                    <span className="text-xs text-slate-400 font-medium uppercase tracking-wider">Total Estimado</span>
+                    <span className="text-2xl font-black text-white tracking-tight">
+                        ${selections.model === 'one-time'
+                            ? totalCost.devTotal.toLocaleString()
+                            : Math.ceil(totalCost.monthlyRent).toLocaleString() + '/mes'}
+                    </span>
+                </div>
+
+                {step < totalSteps ? (
+                    <button
+                        onClick={handleNext}
+                        disabled={!canProceed()}
+                        className={`px-8 py-3 rounded-full font-bold text-sm transition-all shadow-lg transform active:scale-95 ${canProceed() ? 'bg-brand-500 text-white shadow-brand-500/25' : 'bg-slate-800 text-slate-500'
+                            }`}
+                    >
+                        Siguiente
+                    </button>
+                ) : (
+                    <button
+                        onClick={() => openWhatsApp('Cliente', '')}
+                        className="px-6 py-3 rounded-xl font-bold text-sm bg-green-500 text-white flex items-center gap-2"
+                    >
+                        <MessageCircle size={18} /> Contactar
+                    </button>
+                )}
+            </div>
+        </div>
+    );
+
     return (
-        <div className="w-full max-w-5xl mx-auto p-4 md:p-8">
+        <div className="w-full max-w-5xl mx-auto p-4 md:p-8 pb-32 md:pb-8 relative">
             {/* Consult Banner */}
             <div className="flex justify-end mb-4">
                 <button
@@ -346,6 +415,21 @@ export const QuoteWizard = () => {
                     {step === 3 && (
                         <motion.div key="step3" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
                             <h2 className="text-3xl font-bold mb-6 text-center">Funcionalidades Extra</h2>
+
+                            {/* ALERTA DE COMPLEJIDAD */}
+                            {totalCost.isComplexUpgrade && (
+                                <motion.div
+                                    initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
+                                    className="mb-6 p-4 bg-yellow-500/10 border border-yellow-500/50 rounded-lg flex gap-3 items-start"
+                                >
+                                    <AlertTriangle className="text-yellow-500 shrink-0" />
+                                    <div className="text-sm text-yellow-200">
+                                        <strong>⚠️ Nota Técnica:</strong> Al seleccionar funcionalidades avanzadas (como Login o Inventarios),
+                                        el proyecto requiere una arquitectura de <em>Web App</em>, lo que ajusta la inversión base.
+                                    </div>
+                                </motion.div>
+                            )}
+
                             <div className="grid md:grid-cols-2 gap-4">
                                 {SERVICES.map(svc => (
                                     <CheckboxCard
@@ -426,16 +510,27 @@ export const QuoteWizard = () => {
                                                 <div className="text-4xl font-bold text-emerald-400 mb-2">
                                                     ${totalCost.devTotalDiscounted.toLocaleString()}
                                                 </div>
+                                                <div className="text-sm text-brand-400 font-medium mb-3">
+                                                    O en 3 pagos de ${totalCost.installmentsPrice.toLocaleString()}
+                                                </div>
                                             </>
                                         ) : (
-                                            <div className="text-4xl font-bold text-white mb-2">
-                                                ${totalCost.devTotal.toLocaleString()}
-                                            </div>
+                                            <>
+                                                <div className="text-4xl font-bold text-white mb-2">
+                                                    ${totalCost.devTotal.toLocaleString()}
+                                                </div>
+                                                <div className="text-sm text-brand-400 font-medium mb-3">
+                                                    O en 3 pagos de ${totalCost.installmentsPrice.toLocaleString()}
+                                                </div>
+                                            </>
                                         )}
 
-                                        <div className="text-sm text-slate-400">
+                                        <div className="text-sm text-slate-400 mb-4">
                                             + ${totalCost.monthlyInfraTotal.toLocaleString()}/mes de servidor
                                         </div>
+                                        <p className="text-xs text-slate-500 border-t border-slate-700 pt-3 mt-3">
+                                            Eres dueño del 100% del código y propiedad intelectual.
+                                        </p>
                                     </div>
                                 </div>
 
@@ -453,30 +548,30 @@ export const QuoteWizard = () => {
                                             <>
                                                 <div className="flex items-end justify-center gap-2 mb-2">
                                                     <div className="text-4xl font-bold text-emerald-400">
-                                                        ${totalCost.monthlyRentDiscounted.toLocaleString()}
-                                                    </div>
-                                                    <div className="text-lg font-medium text-emerald-300 mb-1">
-                                                        (1er Mes)
+                                                        ${totalCost.monthlyRent.toLocaleString()}
+                                                        <span className="text-lg font-normal text-emerald-600">/mes</span>
                                                     </div>
                                                 </div>
-                                                <div className="text-lg text-slate-400 mb-4">
-                                                    luego ${Math.ceil(totalCost.monthlyRent).toLocaleString()}/mes
-                                                </div>
-                                                <div className="text-sm font-bold text-white bg-white/10 py-1 px-3 rounded-full inline-block">
+                                                <div className="text-sm font-bold text-white bg-white/10 py-1 px-3 rounded-full inline-block mb-3">
                                                     ¡Sin Pago Inicial!
                                                 </div>
                                             </>
                                         ) : (
                                             <>
                                                 <div className="text-4xl font-bold text-white mb-2">
-                                                    ${Math.ceil(totalCost.monthlyRent).toLocaleString()}
+                                                    ${totalCost.monthlyRent.toLocaleString()}
                                                     <span className="text-lg font-normal text-slate-500">/mes</span>
                                                 </div>
-                                                <div className="text-sm text-slate-400">
+                                                <div className="text-sm text-slate-400 mb-3">
                                                     Pago inicial: $0
                                                 </div>
                                             </>
                                         )}
+                                        <p className="text-xs text-slate-500 border-t border-slate-700 pt-3 mt-3">
+                                            {(selections.projectType?.id === 'landing' && !totalCost.isComplexUpgrade)
+                                                ? "Incluye Hosting y 1 cambio mensual. Dominio anual aparte."
+                                                : "Modelo de suscripción. Incluye licencia de uso, hosting y soporte perpetuo."}
+                                        </p>
                                     </div>
                                 </div>
                             </div>
@@ -489,6 +584,28 @@ export const QuoteWizard = () => {
                             {!isSubmitted ? (
                                 <>
                                     <h2 className="text-3xl font-bold mb-8 text-center">Resumen Final</h2>
+
+                                    {/* UPSELL: Mantenimiento (Visible en ambos modelos) */}
+                                    <div className="mb-8 p-4 bg-gradient-to-r from-slate-800 to-slate-900 rounded-xl border border-white/10 flex flex-col md:flex-row items-center justify-between gap-4">
+                                        <div className="flex items-center gap-3">
+                                            <div className="p-2 bg-brand-500/20 rounded-lg text-brand-400">
+                                                <ShieldCheck size={24} />
+                                            </div>
+                                            <div>
+                                                <div className="font-bold text-white text-sm md:text-base">Plan de Mantenimiento y Soporte</div>
+                                                <div className="text-xs text-slate-400">Actualizaciones, respaldos y cambios menores.</div>
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center gap-4 w-full md:w-auto justify-between md:justify-end">
+                                            <span className="text-white font-bold">+${PRICING_RULES.MAINTENANCE_FEE}/mes</span>
+                                            <div
+                                                onClick={() => setSelections(prev => ({ ...prev, maintenance: !prev.maintenance }))}
+                                                className={`w-12 h-6 rounded-full p-1 cursor-pointer transition-colors ${selections.maintenance ? 'bg-brand-500' : 'bg-slate-600'}`}
+                                            >
+                                                <div className={`w-4 h-4 bg-white rounded-full shadow-md transform transition-transform ${selections.maintenance ? 'translate-x-6' : ''}`} />
+                                            </div>
+                                        </div>
+                                    </div>
 
                                     <div className="grid md:grid-cols-2 gap-8">
                                         <div className="space-y-6">
@@ -513,6 +630,7 @@ export const QuoteWizard = () => {
                                                     )}
                                                     {selections.services.map(id => {
                                                         const s = SERVICES.find(x => x.id === id);
+                                                        if (!s) return null; // Safeguard against internal logic services
                                                         return (
                                                             <div key={id} className="flex justify-between">
                                                                 <span className="text-slate-400">Add-on: {s.label}</span>
@@ -520,6 +638,12 @@ export const QuoteWizard = () => {
                                                             </div>
                                                         );
                                                     })}
+                                                    {selections.maintenance && (
+                                                        <div className="flex justify-between">
+                                                            <span className="text-slate-400">Plan de Mantenimiento & Soporte</span>
+                                                            <span className="text-white font-medium text-brand-300">+${PRICING_RULES.MAINTENANCE_FEE.toLocaleString()}/mes</span>
+                                                        </div>
+                                                    )}
                                                     <div className="flex justify-between pt-4 border-t border-dark-border font-bold">
                                                         <span className="text-white">Valor Desarrollo</span>
                                                         <span className="text-brand-400">${totalCost.devTotal.toLocaleString()}</span>
@@ -544,7 +668,7 @@ export const QuoteWizard = () => {
                                                         <div className="text-4xl font-bold mb-1">
                                                             ${totalCost.discountEnabled ? totalCost.devTotalDiscounted.toLocaleString() : totalCost.devTotal.toLocaleString()}
                                                         </div>
-                                                        <div className="text-sm opacity-75">+ ${totalCost.monthlyInfraTotal.toLocaleString()}/mes (Hosting)</div>
+                                                        <div className="text-sm opacity-75">+ ${totalCost.totalMonthlyRecurring.toLocaleString()}/mes (Hosting{selections.maintenance ? ' + Soporte' : ''})</div>
                                                         {totalCost.discountEnabled && (
                                                             <div className="mt-3 text-yellow-300 text-sm font-medium">
                                                                 ¡Ahorras ${(totalCost.devTotal - totalCost.devTotalDiscounted).toLocaleString()}!
@@ -559,11 +683,14 @@ export const QuoteWizard = () => {
                                                             </div>
                                                         )}
                                                         <div className="text-4xl font-bold mb-1">
-                                                            ${totalCost.discountEnabled ? totalCost.monthlyRentDiscounted.toLocaleString() : Math.ceil(totalCost.monthlyRent).toLocaleString()}
+                                                            ${totalCost.discountEnabled
+                                                                ? (totalCost.monthlyRentDiscounted + totalCost.maintenanceFee + totalCost.monthlyInfraTotal).toLocaleString()
+                                                                : (Math.ceil(totalCost.monthlyRent) + totalCost.maintenanceFee + totalCost.monthlyInfraTotal).toLocaleString()
+                                                            }
                                                             <span className="text-lg opacity-80 font-normal"> (1er Mes)</span>
                                                         </div>
                                                         <div className="text-lg opacity-80 mb-2">
-                                                            Luego ${Math.ceil(totalCost.monthlyRent).toLocaleString()}/mes
+                                                            Luego ${(Math.ceil(totalCost.monthlyRent) + totalCost.maintenanceFee + totalCost.monthlyInfraTotal).toLocaleString()}/mes
                                                         </div>
                                                         <div className="text-sm font-bold bg-black/20 inline-block px-3 py-1 rounded-full">
                                                             Sin Pago Inicial
@@ -595,6 +722,24 @@ export const QuoteWizard = () => {
                                                     Te abrirá un chat directo con nosotros para afinar detalles.
                                                 </p>
                                             </form>
+
+                                            {/* Botón para nueva cotización */}
+                                            <button
+                                                onClick={() => {
+                                                    setStep(1);
+                                                    setSelections({
+                                                        industry: null,
+                                                        projectType: null,
+                                                        services: [],
+                                                        infra: null,
+                                                        model: 'one-time',
+                                                        maintenance: false
+                                                    });
+                                                }}
+                                                className="w-full mt-4 py-3 bg-brand-500/10 text-brand-400 hover:bg-brand-500 hover:text-white border border-brand-500/50 hover:border-brand-500 rounded-xl flex items-center justify-center gap-2 transition-all font-medium"
+                                            >
+                                                <RotateCcw size={18} /> Nueva Cotización
+                                            </button>
                                         </div>
                                     </div>
                                 </>
@@ -613,10 +758,21 @@ export const QuoteWizard = () => {
                                         Te responderemos vía WhatsApp en menos de 24 horas.
                                     </p>
                                     <button
-                                        onClick={() => { setIsSubmitted(false); setStep(1); }}
+                                        onClick={() => {
+                                            setIsSubmitted(false);
+                                            setStep(1);
+                                            setSelections({
+                                                industry: null,
+                                                projectType: null,
+                                                services: [],
+                                                infra: null,
+                                                model: 'one-time',
+                                                maintenance: false
+                                            });
+                                        }}
                                         className="text-brand-400 hover:text-brand-300 flex items-center gap-2 mx-auto"
                                     >
-                                        <RotateCcw size={16} /> Crear nueva cotización
+                                        <RotateCcw size={16} /> Cotizar otro proyecto
                                     </button>
                                 </div>
                             )}
@@ -648,6 +804,8 @@ export const QuoteWizard = () => {
                     )}
                 </div>
             )}
+            {/* STICKY FOOTER SOLO MOVIL */}
+            <MobileStickyFooter />
         </div>
     );
 };

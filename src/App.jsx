@@ -4,6 +4,7 @@ import { Hero } from './components/Layout/Hero';
 import { QuoteWizard } from './components/QuoteWizard/QuoteWizard';
 import { ProcessTimeline } from './components/Sections/ProcessTimeline';
 import { FAQSection } from './components/Sections/FAQSection';
+import { TechValueSection } from './components/Sections/TechValueSection';
 import { Footer } from './components/Layout/Footer';
 import { ChatBot } from './components/AI/ChatBot';
 import { Team } from './components/Layout/Team';
@@ -11,9 +12,14 @@ import { Team } from './components/Layout/Team';
 function App() {
   const wizardRef = useRef(null);
   const contactRef = useRef(null);
+  const techRef = useRef(null);
 
   const scrollToWizard = () => {
     wizardRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  const scrollToTech = () => {
+    techRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
   const scrollToContact = () => {
@@ -26,12 +32,16 @@ function App() {
   return (
     <div className="min-h-screen bg-dark-bg text-slate-200 font-sans selection:bg-brand-500/30">
 
-      <Navbar onContactClick={scrollToContact} />
+      <Navbar onContactClick={scrollToContact} onWhyUsClick={scrollToTech} />
 
       <main>
         <Hero onCtaClick={scrollToWizard} />
 
         <ProcessTimeline />
+
+        <div ref={techRef}>
+          <TechValueSection />
+        </div>
 
         <section ref={wizardRef} className="py-24 relative bg-dark-bg/50">
           <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-brand-500/50 to-transparent" />
