@@ -47,6 +47,14 @@ export const QuoteWizard = () => {
 
         // Step 4: Services (solo cobra los NO incluidos)
         const includedServices = selections.projectType?.includedServices || [];
+
+        // Calcular ahorro por servicios incluidos en el paquete
+        let packageSavings = 0;
+        includedServices.forEach(svcId => {
+            const svc = SERVICES.find(s => s.id === svcId);
+            if (svc && svc.price > 0) packageSavings += svc.price;
+        });
+
         selections.services.forEach(svcId => {
             // No cobrar si está incluido en el paquete
             if (includedServices.includes(svcId)) return;
@@ -101,6 +109,7 @@ export const QuoteWizard = () => {
             setupFee,
             monthlyRent, // Renta base calculada
             installmentsPrice, // Valor cuota 1/3
+            packageSavings, // Ahorro por servicios incluidos en paquete
             // Discounted values
             devTotalDiscounted,
             setupFeeDiscounted,
@@ -152,66 +161,116 @@ export const QuoteWizard = () => {
 
     // Genera el mensaje pre-armado para WhatsApp
     const generateWhatsAppMessage = (contactName, extraDetails = '') => {
-        const lines = [
-            `=== NUEVA COTIZACION - FORJA DIGITAL ===`,
-            ``,
-            `* Cliente: ${contactName}`,
-            `* Industria: ${selections.industry?.label || 'No especificada'}`,
-            `* Tipo de proyecto: ${selections.projectType?.title || 'No especificado'}`,
-            ``
-        ];
+        const lines = [];
 
-        // Servicios seleccionados
+        // Header
+        lines.push(`*FORJA DIGITAL*`);
+        lines.push(`Cotizacion Personalizada`);
+        lines.push(``);
+        lines.push(`━━━━━━━━━━━━━━━━━━━━`);
+        lines.push(``);
+
+        // Info del cliente
+        lines.push(`*Cliente:* ${contactName}`);
+        lines.push(`*Industria:* ${selections.industry?.label || 'General'}`);
+        lines.push(`*Proyecto:* ${selections.projectType?.title || 'No especificado'}`);
+        lines.push(``);
+        lines.push(`━━━━━━━━━━━━━━━━━━━━`);
+        lines.push(``);
+
+        // Desglose
+        lines.push(`*DESGLOSE*`);
+        lines.push(``);
+        lines.push(`Pagina web base ........... $${BASE_PRICE.toLocaleString()}`);
+
+        if (selections.projectType?.priceModifier > 0) {
+            lines.push(`${selections.projectType?.title} ........... +$${selections.projectType?.priceModifier.toLocaleString()}`);
+        }
+
+        if (totalCost.isComplexUpgrade) {
+            lines.push(`Arquitectura Web App ... +$9,000`);
+        }
+
+        // Servicios
         if (selections.services.length > 0) {
-            lines.push(`FUNCIONALIDADES:`);
+            lines.push(``);
             selections.services.forEach(svcId => {
                 const svc = SERVICES.find(s => s.id === svcId);
                 const isIncluded = includedServices.includes(svcId);
                 if (svc) {
-                    lines.push(`  - ${svc.label}${isIncluded ? ' (Incluido)' : ''}`);
+                    const dots = '.'.repeat(Math.max(3, 25 - svc.label.length));
+                    if (isIncluded) {
+                        lines.push(`${svc.label} ${dots} _Incluido_`);
+                    } else {
+                        lines.push(`${svc.label} ${dots} +$${svc.price.toLocaleString()}`);
+                    }
                 }
             });
+        }
+
+        if (selections.maintenance) {
+            lines.push(`Soporte mensual ........... +$${PRICING_RULES.MAINTENANCE_FEE.toLocaleString()}/mes`);
+        }
+
+        lines.push(``);
+        lines.push(`━━━━━━━━━━━━━━━━━━━━`);
+        lines.push(`*TOTAL:* $${totalCost.devTotal.toLocaleString()}`);
+        lines.push(`━━━━━━━━━━━━━━━━━━━━`);
+        lines.push(``);
+
+        // Hosting
+        if (selections.infra) {
+            lines.push(`*Hosting:* ${selections.infra.title} - $${selections.infra.monthlyPrice}/mes`);
             lines.push(``);
         }
 
-        // Infraestructura
-        if (selections.infra) {
-            lines.push(`HOSTING: ${selections.infra.title} ($${selections.infra.monthlyPrice}/mes)`);
-        }
-
-        // Modelo de inversión y precios
+        // Inversion
+        lines.push(`*INVERSION*`);
         lines.push(``);
-        lines.push(`INVERSION:`);
-        lines.push(`* Modelo: ${selections.model === 'one-time' ? 'Pago Unico' : 'Renta Mensual'}`);
 
         if (selections.model === 'one-time') {
+            lines.push(`Modalidad: Pago Unico`);
             if (totalCost.discountEnabled) {
-                lines.push(`* Precio: $${totalCost.devTotal.toLocaleString()} -> $${totalCost.devTotalDiscounted.toLocaleString()} (${totalCost.discountPercent}% OFF)`);
+                lines.push(``);
+                lines.push(`Precio regular: ~$${totalCost.devTotal.toLocaleString()}~`);
+                lines.push(`*Tu precio: $${totalCost.devTotalDiscounted.toLocaleString()}*`);
+                lines.push(`_Ahorras $${(totalCost.devTotal - totalCost.devTotalDiscounted).toLocaleString()} (${totalCost.discountPercent}% OFF)_`);
             } else {
-                lines.push(`* Precio: $${totalCost.devTotal.toLocaleString()}`);
+                lines.push(`*Precio: $${totalCost.devTotal.toLocaleString()}*`);
             }
-            if (totalCost.monthlyInfraTotal > 0) {
-                lines.push(`* Hosting mensual: $${totalCost.monthlyInfraTotal.toLocaleString()}/mes`);
+            if (totalCost.totalMonthlyRecurring > 0) {
+                lines.push(``);
+                lines.push(`+ $${totalCost.totalMonthlyRecurring.toLocaleString()}/mes (Hosting${selections.maintenance ? ' + Soporte' : ''})`);
             }
         } else {
+            const rentaBase = Math.ceil(totalCost.monthlyRent);
+            const extras = totalCost.maintenanceFee;
+            const totalMensual = rentaBase + extras;
+
+            lines.push(`Modalidad: Renta Mensual`);
+            lines.push(`Sin pago inicial`);
+            lines.push(``);
+
             if (totalCost.discountEnabled) {
-                lines.push(`* Renta mensual: $${totalCost.monthlyRentDiscounted.toLocaleString()} (1er Mes) -> $${Math.ceil(totalCost.monthlyRent).toLocaleString()}/mes (Resto)`);
-                lines.push(`* Pago inicial: $0 (Bonificado)`);
+                const primerMes = Math.ceil(totalCost.monthlyRent * (1 - totalCost.discountPercent / 100)) + extras;
+                lines.push(`*1er mes:* $${primerMes.toLocaleString()} _(${totalCost.discountPercent}% OFF)_`);
+                lines.push(`*Desde 2do mes:* $${totalMensual.toLocaleString()}/mes`);
             } else {
-                lines.push(`* Renta mensual: $${Math.ceil(totalCost.monthlyRent).toLocaleString()}/mes`);
-                lines.push(`* Pago inicial: $0`);
+                lines.push(`*Mensualidad:* $${totalMensual.toLocaleString()}/mes`);
             }
+            lines.push(``);
+            lines.push(`_Hosting incluido_`);
         }
 
         if (extraDetails.trim()) {
             lines.push(``);
-            lines.push(`DETALLES ADICIONALES:`);
-            lines.push(extraDetails);
+            lines.push(`━━━━━━━━━━━━━━━━━━━━`);
+            lines.push(`*Notas:* ${extraDetails}`);
         }
 
         lines.push(``);
-        lines.push(`---`);
-        lines.push(`Cotizacion generada desde forjadigital.com`);
+        lines.push(`━━━━━━━━━━━━━━━━━━━━`);
+        lines.push(`forjadigital.com`);
 
         return lines.join('\n');
     };
@@ -288,41 +347,9 @@ export const QuoteWizard = () => {
         );
     }
 
-    const MobileStickyFooter = () => (
-        <div className={`fixed bottom-0 left-0 w-full z-50 bg-gray-950 border-t border-brand-500/50 shadow-[0_-5px_30px_rgba(0,0,0,0.8)] p-4 md:hidden pb-safe transition-transform duration-300 ${step === totalSteps || isSubmitted ? 'translate-y-full' : 'translate-y-0'}`}>
-            <div className="flex justify-between items-center gap-4">
-                <div className="flex flex-col">
-                    <span className="text-xs text-slate-400 font-medium uppercase tracking-wider">Total Estimado</span>
-                    <span className="text-2xl font-black text-white tracking-tight">
-                        ${selections.model === 'one-time'
-                            ? totalCost.devTotal.toLocaleString()
-                            : Math.ceil(totalCost.monthlyRent).toLocaleString() + '/mes'}
-                    </span>
-                </div>
-
-                {step < totalSteps ? (
-                    <button
-                        onClick={handleNext}
-                        disabled={!canProceed()}
-                        className={`px-8 py-3 rounded-full font-bold text-sm transition-all shadow-lg transform active:scale-95 ${canProceed() ? 'bg-brand-500 text-white shadow-brand-500/25' : 'bg-slate-800 text-slate-500'
-                            }`}
-                    >
-                        Siguiente
-                    </button>
-                ) : (
-                    <button
-                        onClick={() => openWhatsApp('Cliente', '')}
-                        className="px-6 py-3 rounded-xl font-bold text-sm bg-green-500 text-white flex items-center gap-2"
-                    >
-                        <MessageCircle size={18} /> Contactar
-                    </button>
-                )}
-            </div>
-        </div>
-    );
 
     return (
-        <div className="w-full max-w-5xl mx-auto p-4 md:p-8 pb-32 md:pb-8 relative">
+        <div className="w-full max-w-5xl mx-auto p-4 md:p-8 relative">
             {/* Consult Banner */}
             <div className="flex justify-end mb-4">
                 <button
@@ -628,13 +655,26 @@ export const QuoteWizard = () => {
                                                             <span className="text-white">+${selections.projectType?.priceModifier.toLocaleString()}</span>
                                                         </div>
                                                     )}
+                                                    {totalCost.isComplexUpgrade && (
+                                                        <div className="flex justify-between">
+                                                            <span className="text-slate-400">Arquitectura Web App</span>
+                                                            <span className="text-white">+$9,000</span>
+                                                        </div>
+                                                    )}
                                                     {selections.services.map(id => {
                                                         const s = SERVICES.find(x => x.id === id);
-                                                        if (!s) return null; // Safeguard against internal logic services
+                                                        if (!s) return null;
+                                                        const isServiceIncluded = includedServices.includes(id);
                                                         return (
                                                             <div key={id} className="flex justify-between">
-                                                                <span className="text-slate-400">Add-on: {s.label}</span>
-                                                                <span className="text-white">+${s.price.toLocaleString()}</span>
+                                                                <span className="text-slate-400">
+                                                                    {isServiceIncluded ? '' : 'Add-on: '}{s.label}
+                                                                </span>
+                                                                {isServiceIncluded ? (
+                                                                    <span className="text-emerald-400 text-sm">Incluido</span>
+                                                                ) : (
+                                                                    <span className="text-white">+${s.price.toLocaleString()}</span>
+                                                                )}
                                                             </div>
                                                         );
                                                     })}
@@ -644,6 +684,7 @@ export const QuoteWizard = () => {
                                                             <span className="text-white font-medium text-brand-300">+${PRICING_RULES.MAINTENANCE_FEE.toLocaleString()}/mes</span>
                                                         </div>
                                                     )}
+
                                                     <div className="flex justify-between pt-4 border-t border-dark-border font-bold">
                                                         <span className="text-white">Valor Desarrollo</span>
                                                         <span className="text-brand-400">${totalCost.devTotal.toLocaleString()}</span>
@@ -804,8 +845,7 @@ export const QuoteWizard = () => {
                     )}
                 </div>
             )}
-            {/* STICKY FOOTER SOLO MOVIL */}
-            <MobileStickyFooter />
+
         </div>
     );
 };

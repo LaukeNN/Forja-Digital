@@ -2,8 +2,20 @@ import React from 'react';
 import { Twitter, Instagram, Linkedin, Mail, Code2, Phone } from 'lucide-react';
 
 const TEAM_MINI = [
-    { name: "Alvaro", role: "Dev", img: "/alvaro.png" },
-    { name: "Rene", role: "Dev", img: "/rene.png" }
+    {
+        name: "Alvaro Maxwell",
+        role: "Cofundador & Lead Developer",
+        img: "/alvaro.png",
+        phone: "+52 653 146 3159",
+        bio: "Visionario tecnológico enfocado en soluciones escalables."
+    },
+    {
+        name: "Rene Ayala",
+        role: "Cofundador & Tech Lead",
+        img: "/rene.png",
+        phone: "+52 653 106 2141",
+        bio: "Especialista en desarrollo full-stack y UX."
+    }
 ];
 
 
@@ -13,7 +25,7 @@ export const Footer = () => {
 
 
             <div className="container mx-auto px-4">
-                <div className="grid md:grid-cols-3 gap-12 mb-12 items-center">
+                <div className="grid md:grid-cols-2 gap-12 mb-12 items-start">
 
                     {/* Brand Column (Left) */}
                     <div className="space-y-4">
@@ -27,33 +39,26 @@ export const Footer = () => {
                         </p>
                     </div>
 
-                    {/* Team Miniatures (Center) */}
-                    <div className="flex flex-col items-center">
-                        <h5 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Mentes Maestras</h5>
-                        <div className="flex gap-3">
+                    {/* Team (Right) */}
+                    <div>
+                        <h5 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-6">Mentes Maestras</h5>
+                        <div className="grid grid-cols-2 gap-6">
                             {TEAM_MINI.map((member, idx) => (
-                                <div key={idx} className="group relative w-12 h-12 rounded-full overflow-hidden border border-white/10 hover:border-brand-500 transition-colors cursor-help">
-                                    <img src={member.img} alt={member.name} className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all" />
-                                    <div className="absolute inset-0 bg-brand-900/80 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                                        <Code2 size={16} className="text-white" />
+                                <div key={idx} className="flex gap-4 group">
+                                    <div className="relative w-16 h-16 rounded-full overflow-hidden border-2 border-white/10 group-hover:border-brand-500 transition-colors shadow-lg flex-shrink-0">
+                                        <img src={member.img} alt={member.name} className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all" />
+                                    </div>
+                                    <div className="flex flex-col">
+                                        <span className="text-white font-medium text-sm">{member.name}</span>
+                                        <span className="text-brand-400 text-xs">{member.role}</span>
+                                        <p className="text-slate-500 text-xs mt-1 leading-relaxed">{member.bio}</p>
+                                        <a href={`tel:${member.phone.replace(/\s/g, '')}`} className="text-slate-500 text-xs mt-2 hover:text-brand-400 transition-colors flex items-center gap-1">
+                                            <Phone size={10} />
+                                            {member.phone}
+                                        </a>
                                     </div>
                                 </div>
                             ))}
-                        </div>
-                    </div>
-
-                    {/* Contact (Right) */}
-                    <div className="text-right">
-                        <h4 className="text-white font-bold mb-6 text-sm uppercase tracking-wider">Contáctanos</h4>
-                        <div className="space-y-2 text-slate-400 text-sm">
-                            <div className="flex items-center justify-end gap-2 group">
-                                <span className="group-hover:text-brand-400 transition-colors">+52 653 146 3159</span>
-                                <Phone size={16} className="text-brand-500" />
-                            </div>
-                            <div className="flex items-center justify-end gap-2 group">
-                                <span className="group-hover:text-brand-400 transition-colors">+52 653 106 2141</span>
-                                <Phone size={16} className="text-brand-500" />
-                            </div>
                         </div>
                     </div>
                 </div>
