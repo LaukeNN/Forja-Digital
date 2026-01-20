@@ -24,8 +24,8 @@ export const Navbar = ({ onWhyUsClick }) => {
         <>
             {/* Navbar */}
             <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled
-                    ? 'py-2 bg-gray-900 shadow-xl'
-                    : 'py-3 bg-gray-900/90'
+                ? 'py-2 bg-gray-900 shadow-xl'
+                : 'py-3 bg-gray-900/90'
                 }`}>
                 <div className="container mx-auto px-4 flex justify-between items-center">
                     {/* Logo */}
@@ -39,12 +39,47 @@ export const Navbar = ({ onWhyUsClick }) => {
 
                     {/* Desktop Menu */}
                     <div className="hidden md:flex items-center gap-3">
-                        <a href="mailto:forja.digital.sl@gmail.com" className="p-2 rounded-lg bg-white/10 hover:bg-brand-500/20 text-white transition-colors">
-                            <Mail size={18} />
-                        </a>
-                        <a href="tel:+526531062141" className="p-2 rounded-lg bg-white/10 hover:bg-brand-500/20 text-white transition-colors">
-                            <Phone size={18} />
-                        </a>
+                        {/* Email Dropdown */}
+                        <div className="relative group">
+                            <button className="p-2 rounded-lg bg-white/10 hover:bg-brand-500/20 text-white transition-colors">
+                                <Mail size={18} />
+                            </button>
+                            <div className="absolute top-full right-0 mt-2 w-64 bg-gray-800 border border-white/10 rounded-xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 p-4">
+                                <div className="flex items-center gap-3 mb-3">
+                                    <div className="p-2 bg-brand-500/20 rounded-lg text-brand-400">
+                                        <Mail size={16} />
+                                    </div>
+                                    <span className="text-white font-medium text-sm">Contáctanos</span>
+                                </div>
+                                <a href="mailto:forja.digital.sl@gmail.com" className="block p-2 bg-white/5 rounded-lg hover:bg-brand-500/10 transition-colors text-center">
+                                    <span className="text-slate-300 text-sm break-all">forja.digital.sl@gmail.com</span>
+                                </a>
+                            </div>
+                        </div>
+
+                        {/* Phone Dropdown */}
+                        <div className="relative group">
+                            <button className="p-2 rounded-lg bg-white/10 hover:bg-brand-500/20 text-white transition-colors">
+                                <Phone size={18} />
+                            </button>
+                            <div className="absolute top-full right-0 mt-2 w-56 bg-gray-800 border border-white/10 rounded-xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 p-4">
+                                <div className="flex items-center gap-3 mb-3">
+                                    <div className="p-2 bg-brand-500/20 rounded-lg text-brand-400">
+                                        <Phone size={16} />
+                                    </div>
+                                    <span className="text-white font-medium text-sm">Llámanos</span>
+                                </div>
+                                <div className="space-y-2">
+                                    <a href="tel:+526531062141" className="flex items-center justify-between p-2 bg-white/5 rounded-lg hover:bg-brand-500/10 transition-colors">
+                                        <span className="text-slate-300 text-sm">+52 653 106 2141</span>
+                                    </a>
+                                    <a href="tel:+526531463159" className="flex items-center justify-between p-2 bg-white/5 rounded-lg hover:bg-brand-500/10 transition-colors">
+                                        <span className="text-slate-300 text-sm">+52 653 146 3159</span>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+
                         <button
                             onClick={onWhyUsClick}
                             className="px-4 py-2 bg-brand-600 hover:bg-brand-500 text-white rounded-lg font-medium text-sm transition-colors"

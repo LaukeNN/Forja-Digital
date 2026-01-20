@@ -16,7 +16,7 @@ export const Hero = ({ onCtaClick }) => {
             {/* Overlay Gradient */}
             <div className="absolute inset-0 z-0 bg-gradient-to-t from-gray-900 via-gray-900/80 to-transparent" />
 
-            <div className="container mx-auto px-4 relative z-10 text-center pt-20">
+            <div className="container mx-auto px-4 relative z-10 text-center pt-8 md:pt-20">
                 <div className="flex justify-center mb-8">
                     <div className="px-6 py-2 rounded-full border border-orange-500/30 bg-orange-500/10 backdrop-blur-sm text-orange-400 text-sm font-medium tracking-wide shadow-[0_0_15px_rgba(249,115,22,0.1)]">
                         &lt;/&gt; Desarrollo Web de Alto Nivel
