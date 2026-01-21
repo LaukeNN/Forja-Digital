@@ -1,22 +1,13 @@
 import React from 'react';
 import { Twitter, Instagram, Linkedin, Mail, Code2, Phone } from 'lucide-react';
+import { TEAM } from './Team';
 
-const TEAM_MINI = [
-    {
-        name: "Alvaro Maxwell",
-        role: "Cofundador & Lead Developer",
-        img: "/alvaro.png",
-        phone: "+52 653 146 3159",
-        bio: "Visionario tecnológico enfocado en soluciones escalables."
-    },
-    {
-        name: "Rene Ayala",
-        role: "Cofundador & Tech Lead",
-        img: "/rene.png",
-        phone: "+52 653 106 2141",
-        bio: "Especialista en desarrollo full-stack y UX."
-    }
-];
+// Datos adicionales del equipo para el footer (teléfonos)
+const TEAM_PHONES = {
+    "Alvaro Garcia Maxwell": "+52 653 146 3159",
+    "Rene Ayala S": "+52 653 106 2141"
+};
+
 
 
 export const Footer = () => {
@@ -43,18 +34,18 @@ export const Footer = () => {
                     <div>
                         <h5 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-6">Mentes Maestras</h5>
                         <div className="grid grid-cols-2 gap-6">
-                            {TEAM_MINI.map((member, idx) => (
+                            {TEAM.map((member, idx) => (
                                 <div key={idx} className="flex gap-4 group">
                                     <div className="relative w-16 h-16 rounded-full overflow-hidden border-2 border-white/10 group-hover:border-brand-500 transition-colors shadow-lg flex-shrink-0">
-                                        <img src={member.img} alt={member.name} className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all" />
+                                        <img src={member.image} alt={member.name} className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all" />
                                     </div>
                                     <div className="flex flex-col">
                                         <span className="text-white font-medium text-sm">{member.name}</span>
                                         <span className="text-brand-400 text-xs">{member.role}</span>
                                         <p className="text-slate-500 text-xs mt-1 leading-relaxed">{member.bio}</p>
-                                        <a href={`tel:${member.phone.replace(/\s/g, '')}`} className="text-slate-500 text-xs mt-2 hover:text-brand-400 transition-colors flex items-center gap-1">
+                                        <a href={`tel:${TEAM_PHONES[member.name]?.replace(/\s/g, '')}`} className="text-slate-500 text-xs mt-2 hover:text-brand-400 transition-colors flex items-center gap-1">
                                             <Phone size={10} />
-                                            {member.phone}
+                                            {TEAM_PHONES[member.name]}
                                         </a>
                                     </div>
                                 </div>

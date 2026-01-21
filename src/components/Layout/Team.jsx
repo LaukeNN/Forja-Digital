@@ -1,18 +1,18 @@
 import React from 'react';
 import { Github, Twitter, Linkedin } from 'lucide-react';
 
-const TEAM = [
+export const TEAM = [
     {
-        name: "Alvaro Maxwell",
+        name: "Alvaro Garcia Maxwell",
         role: "Cofundador & Lead Developer",
         image: "/alvaro.png",
-        bio: "Visionario tecnológico enfocado en soluciones escalables y arquitectura de software."
+        bio: "Diseño web y frontend, enfocado en crear interfaces escalables."
     },
     {
-        name: "Rene Ayala",
+        name: "Rene Ayala S",
         role: "Cofundador & Tech Lead",
         image: "/rene.png",
-        bio: "Especialista en desarrollo full-stack y optimización de experiencia de usuario."
+        bio: "Desarrollador full-stack y optimización de experiencia de usuario."
     }
 ];
 

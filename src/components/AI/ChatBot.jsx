@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { MessageSquare, X, Send, Bot, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-const OPENROUTER_API_KEY = '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';
+const OPENROUTER_API_KEY = import.meta.env.VITE_OPENROUTER_API_KEY;
 
 const SYSTEM_PROMPT = `Eres "Forjito", el asistente virtual de Forja Digital, una agencia de desarrollo web mexicana.
 
