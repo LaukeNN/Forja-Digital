@@ -77,7 +77,7 @@ export const ChatBot = () => {
         scrollToBottom();
     }, [messages, isOpen]);
 
-    const sendMessageToOpenRouter = async (userMessage) => {
+    const sendMessageToOpenRouter = async (userMessage, onChunk) => {
         // Prepare conversation history for API (excluding the initial greeting for context efficiency)
         const conversationHistory = messages.map(msg => ({
             role: msg.role === 'assistant' ? 'assistant' : 'user',
@@ -100,13 +100,14 @@ export const ChatBot = () => {
                     'X-Title': 'Forja Digital Chatbot'
                 },
                 body: JSON.stringify({
-                    model: 'xiaomi/mimo-v2-flash:free',//'google/gemini-2.0-flash-001',
+                    model: 'tngtech/deepseek-r1t2-chimera:free',
                     messages: [
                         { role: 'system', content: SYSTEM_PROMPT },
                         ...conversationHistory
                     ],
                     max_tokens: 500,
-                    temperature: 0.7
+                    temperature: 0.7,
+                    stream: true // Enable streaming
                 })
             });
 
@@ -116,8 +117,37 @@ export const ChatBot = () => {
                 throw new Error(`API error: ${response.status}`);
             }
 
-            const data = await response.json();
-            return data.choices[0].message.content;
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder();
+            let accumulatedResponse = "";
+
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+
+                const chunk = decoder.decode(value, { stream: true });
+                const lines = chunk.split('\n');
+
+                for (const line of lines) {
+                    if (line.trim().startsWith('data: ')) {
+                        const dataStr = line.replace('data: ', '').trim();
+                        if (dataStr === '[DONE]') break;
+
+                        try {
+                            const data = JSON.parse(dataStr);
+                            const content = data.choices[0]?.delta?.content || "";
+                            if (content) {
+                                accumulatedResponse += content;
+                                onChunk(accumulatedResponse);
+                            }
+                        } catch (e) {
+                            console.warn("Error parsing stream chunk", e);
+                        }
+                    }
+                }
+            }
+
+            return accumulatedResponse;
         } catch (error) {
             console.error('Error calling OpenRouter:', error);
             return "Lo siento, hubo un problema al procesar tu mensaje. Por favor, intenta de nuevo o contáctanos por WhatsApp.";
@@ -135,10 +165,18 @@ export const ChatBot = () => {
         setInputValue("");
         setIsLoading(true);
 
+        // Add placeholder for bot response immediatelly
+        setMessages(prev => [...prev, { role: 'assistant', content: '' }]);
+
         try {
-            const botResponse = await sendMessageToOpenRouter(userMessage);
-            const botMsg = { role: 'assistant', content: botResponse };
-            setMessages(prev => [...prev, botMsg]);
+            await sendMessageToOpenRouter(userMessage, (currentText) => {
+                setMessages(prev => {
+                    const newMessages = [...prev];
+                    // Update the last message (which is the bot's placeholder)
+                    newMessages[newMessages.length - 1] = { role: 'assistant', content: currentText };
+                    return newMessages;
+                });
+            });
         } finally {
             setIsLoading(false);
         }
